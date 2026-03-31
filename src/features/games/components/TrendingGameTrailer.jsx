@@ -49,7 +49,7 @@ const TrendingGameTrailer = () => {
 
       {/* --- B. GRADIENT OVERLAY (Crucial for text readability) --- */}
       {/* 1. Left-to-Right Black Fade */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
+      <div className="" />
       {/* 2. Bottom-to-Top Fade */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent" />
 

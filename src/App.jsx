@@ -11,6 +11,7 @@ import LiveFeed from './features/live/LiveFeed';
 import LiveTournaments from './features/live/LiveTournaments';
 import WatchLive from './features/live/WatchLive';
 import Register from './features/auth/Register';
+import TournamentDetails from './features/tournaments/TournamentDetails';
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
         <Route path = "/browse" element = {<BrowseGames />} />
         <Route path = "/community" element = {<Community />} />
         <Route path = "/community" element = {<Community />} />
+        <Route path="/tournaments/:id" element={<TournamentDetails />} />
       </Route>
     </Routes>
   );

@@ -3,8 +3,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { loginStart, loginSuccess, loginFailure } from './userSlice';
+import GoogleLoginButton from './GoogleLoginButton'; // Make sure this path is correct
 
-const Login = () => {
+const LoginModal = ({ isOpen, onClose }) => {
   const [isSignInForm, setSignInForm] = useState(true);
   const [formData, setFormData] = useState({ username: '', email: '', password: '' });
   const [registerError, setRegisterError] = useState(null);
@@ -13,6 +14,9 @@ const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading: loginLoading, error: loginError } = useSelector((state) => state.user);
+
+  // Do not render anything if the modal is closed
+  if (!isOpen) return null;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,7 +27,7 @@ const Login = () => {
     setRegisterError(null);
 
     if (isSignInForm) {
-      // --- LOGIN LOGIC ---
+      // --- STANDARD LOGIN LOGIC ---
       dispatch(loginStart());
 
       try {
@@ -32,18 +36,17 @@ const Login = () => {
           password: formData.password
         });
         
+        // MATCHING THE DJANGO BACKEND UNDERSCORE FORMAT
         const { access_token, refresh_token, username } = response.data;
 
         localStorage.setItem('access_token', access_token); 
         localStorage.setItem('refresh_token', refresh_token);
         localStorage.setItem('user_info', JSON.stringify({ username }));
 
-        dispatch(loginSuccess({
-          token: access_token, 
-          user: { username: username } 
-        }));
-
-        navigate('/'); 
+        dispatch(loginSuccess({ token: access_token, user: { username: username } }));
+        
+        onClose(); // Close the modal on success
+        navigate('/browse'); // Send them into the app
 
       } catch (err) {
         console.error("Login Error:", err);
@@ -51,7 +54,7 @@ const Login = () => {
         dispatch(loginFailure(errorMessage));
       }
     } else {
-      // --- REGISTER LOGIC ---
+      // --- STANDARD REGISTER LOGIC ---
       setIsRegisterLoading(true);
       try {
         const dataToSend = {
@@ -78,23 +81,33 @@ const Login = () => {
   const toggleSignInForm = () => {
     setSignInForm(!isSignInForm);
     setRegisterError(null);
-    if (loginError) {
-      dispatch(loginFailure(null)); 
-    }
+    if (loginError) dispatch(loginFailure(null)); 
   };
 
   const displayError = isSignInForm ? loginError : registerError;
   const isLoading = isSignInForm ? loginLoading : isRegisterLoading;
 
   return (
-    <div className="min-h-screen flex justify-center items-center bg-[#0b0f19] px-4 font-sans text-gray-300">
-      
-      {/* Background radial glow for depth */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-900/20 rounded-full blur-[100px] pointer-events-none"></div>
-
-      <div className="w-full max-w-sm bg-[#151a28] p-8 rounded-xl border border-gray-800 shadow-2xl relative z-10">
+    <div 
+      className="fixed inset-0 z-50 flex justify-center items-center bg-black/70 backdrop-blur-md p-4"
+      onClick={onClose} // Closes modal when clicking the blurred background
+    >
+      <div 
+        className="w-full max-w-sm bg-[#151a28] p-8 rounded-xl border border-gray-800 shadow-2xl relative"
+        onClick={(e) => e.stopPropagation()} // Prevents clicks inside the card from closing it
+      >
         
-        <div className="mb-8 text-center">
+        {/* Close Icon (X) */}
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-cyan-400 transition-colors"
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div className="mb-6 text-center mt-2">
           <h2 className="text-3xl font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-1">
             {isSignInForm ? 'Welcome Back' : 'Join the Game'}
           </h2>
@@ -123,7 +136,6 @@ const Login = () => {
               />
             </div>
           )}
-
           <div>
             <input
               type="email"
@@ -135,7 +147,6 @@ const Login = () => {
               className="w-full px-4 py-3 bg-[#0b0f19] border border-gray-700 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
             />
           </div>
-
           <div>
             <input
               type="password"
@@ -164,7 +175,19 @@ const Login = () => {
           </button>
         </form>
 
-        <p className="mt-8 text-center text-sm text-gray-500">
+        {/* --- DIVIDER AND GOOGLE LOGIN BUTTON --- */}
+        <div className="mt-6 flex items-center justify-center space-x-2">
+          <span className="h-[1px] w-full bg-gray-700"></span>
+          <span className="text-xs text-gray-500 font-bold uppercase tracking-widest">OR</span>
+          <span className="h-[1px] w-full bg-gray-700"></span>
+        </div>
+
+        <div className="mt-4 flex justify-center">
+          <GoogleLoginButton onClose={onClose} />
+        </div>
+        {/* --------------------------------------- */}
+
+        <p className="mt-6 text-center text-sm text-gray-500">
           {isSignInForm ? "New player? " : 'Already registered? '}
           <button 
             type="button"
@@ -174,137 +197,10 @@ const Login = () => {
             {isSignInForm ? 'Sign Up' : 'Log In'}
           </button>
         </p>
-        
+
       </div>
     </div>
   );
 };
 
-export default Login;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import { useState } from 'react';
-// import { useDispatch, useSelector } from 'react-redux';
-// import { useNavigate, Link } from 'react-router-dom';
-// import api from '../../services/api';
-// import { loginStart, loginSuccess, loginFailure } from './userSlice'; 
-
-// const Login = () => {
-//   const [formData, setFormData] = useState({ email: '', password: '' });
-//   const dispatch = useDispatch();
-//   const navigate = useNavigate();
-//   const { loading, error } = useSelector((state) => state.user);
-
-//   const handleChange = (e) => {
-//     setFormData({ ...formData, [e.target.name]: e.target.value });
-//   };
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     dispatch(loginStart());
-
-//     try {
-//       // 1. Call your existing Django View
-//       const response = await api.post('/accounts/login/', formData);
-      
-//       console.log("Backend Response:", response.data); // Debugging check
-
-//       // 2. CRITICAL FIX: Match the exact keys from your Django 'login_user' view
-//       // Your View returns: { 'username', 'access_token', 'refresh_token' }
-//       const { access_token, refresh_token, username } = response.data;
-
-//       // 3. Save to Local Storage
-//       localStorage.setItem('access_token', access_token); 
-//       localStorage.setItem('refresh_token', refresh_token);
-//       localStorage.setItem('user_info', JSON.stringify({ username }));
-
-//       // 4. Update Redux
-//       // We manually construct the user object because your backend sends 'username' at the top level
-//       dispatch(loginSuccess({
-//         token: access_token, 
-//         user: { username: username } 
-//       }));
-
-//       navigate('/'); 
-
-//     } catch (err) {
-//       console.error("Login Error:", err);
-//       const errorMessage = err.response?.data?.message || "Invalid email or password.";
-//       dispatch(loginFailure(errorMessage));
-//     }
-//   };
-
-//   return (
-//     <div className="flex justify-center items-center h-[80vh]">
-//       <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md border border-gray-700">
-//         <h2 className="text-3xl font-bold text-center text-blue-400 mb-6">Welcome Back</h2>
-        
-//         {error && (
-//             <div className="bg-red-500/20 text-red-200 p-3 rounded mb-4 text-center border border-red-500/50">
-//                 {error}
-//             </div>
-//         )}
-
-//         <form onSubmit={handleSubmit} className="space-y-6">
-//           <div>
-//             <label className="block text-gray-400 mb-2">Email Address</label>
-//             <input 
-//               type="email" 
-//               name="email" 
-//               value={formData.email}
-//               onChange={handleChange}
-//               className="w-full p-3 bg-gray-900 border border-gray-700 rounded text-white focus:outline-none focus:border-blue-500"
-//               placeholder="Enter your email"
-//               required
-//             />
-//           </div>
-
-//           <div>
-//             <label className="block text-gray-400 mb-2">Password</label>
-//             <input 
-//               type="password" 
-//               name="password"
-//               value={formData.password}
-//               onChange={handleChange}
-//               className="w-full p-3 bg-gray-900 border border-gray-700 rounded text-white focus:outline-none focus:border-blue-500"
-//               placeholder="Enter password"
-//               required
-//             />
-//           </div>
-
-//           <button 
-//             type="submit" 
-//             disabled={loading}
-//             className={`w-full font-bold py-3 rounded transition duration-200 flex justify-center items-center
-//                 ${loading 
-//                     ? 'bg-blue-800 text-gray-300 cursor-not-allowed' 
-//                     : 'bg-blue-600 hover:bg-blue-700 text-white'
-//                 }`}
-//           >
-//             {loading ? "Logging In..." : "Log In"}
-//           </button>
-//         </form>
-
-//         <p className="mt-6 text-center text-gray-400">
-//           Don't have an account?{' '}
-//           <Link to="/register" className="text-blue-400 hover:underline">Register</Link>
-//         </p>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default Login;
+export default LoginModal;
