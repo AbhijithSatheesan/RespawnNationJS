@@ -5,7 +5,6 @@ import { setWelcome } from '../../services/TechBackGround/techBackgroundSlice';
 
 import WelcomeCard from './Components/WelcomeCard';
 import CommunityBar from './Components/CommunityBar';
-import LoginModal from '../auth/LoginModal';
 import WelcomeSkeleton from './Components/WelcomeSkeleton';
 
 import browseImg from './assets/BrowseCard.png';
@@ -21,17 +20,11 @@ const MENU_ITEMS = [
 const WelcomePage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Dispatch immediately so TechBackground starts rendering
     dispatch(setWelcome());
-    
-    // 2. Firefox flash fix
     document.body.style.backgroundColor = "#050505";
-
-    // 3. Keep the skeleton visible just long enough to hide the background "boot up"
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 600); 
@@ -39,34 +32,17 @@ const WelcomePage = () => {
     return () => clearTimeout(timer);
   }, [dispatch]);
 
-  // --- KEY CHANGE: WE REMOVED THE IF(LOADING) RETURN ---
-  // This allows the TechBackground (which listens to the dispatch) to exist in the background.
-
   return (
-    <div className="relative w-full min-h-screen flex flex-col items-center justify-center z-10 text-white font-mono p-4 overflow-x-hidden md:p-6 bg-transparent">
+    <div className="relative w-full min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center z-10 text-white font-mono p-4 overflow-x-hidden md:p-6 bg-transparent mt-[-4rem] md:mt-0">
       
-      {/* IF LOADING: Show the Skeleton as an absolute overlay 
-         This keeps the TechBackground visible behind it if it's already rendered
-      */}
       {isLoading && (
         <div className="absolute inset-0 z-50">
           <WelcomeSkeleton />
         </div>
       )}
 
-      {/* --- ACTUAL CONTENT (hidden until loaded to prevent Firefox flicker) --- */}
       <div className={`flex flex-col items-center justify-center w-full transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
         
-        {/* LOGIN BUTTON */}
-        <div className="absolute top-4 right-4 md:top-6 md:right-6 z-40">
-          <button 
-            onClick={() => setIsLoginOpen(true)}
-            className="px-4 py-2 md:px-6 md:py-2 bg-[#151a28] border border-cyan-500/50 text-cyan-400 text-xs md:text-sm font-bold uppercase tracking-wider rounded hover:bg-cyan-500/10 transition-all duration-300 flex items-center gap-2"
-          >
-            Login
-          </button>
-        </div>
-
         {/* HERO TEXT */}
         <div className="text-center mb-6 md:mb-10 animate-fade-in-down mt-12 md:mt-0">
           <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black italic tracking-tighter">
@@ -98,14 +74,11 @@ const WelcomePage = () => {
           <CommunityBar onClick={() => navigate('/community')} />
         </div>
       </div>
-
-      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
     </div>
   );
 };
 
 export default WelcomePage;
-
 
 
 
