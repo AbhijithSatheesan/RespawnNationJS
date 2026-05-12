@@ -6,4 +6,5 @@ export const REGISTER_TOURNAMENT = (id) => `tournaments/${id}/register/`;
 // Game Page
 export const GAME_DETAILS = (id) => `games/game/${id}/`
 export const GAME_TOURNAMENTS = (id) => `tournaments/game/${id}/`
+export const WALLET_WITHDRAW = "accounts/wallet/withdraw/"
 

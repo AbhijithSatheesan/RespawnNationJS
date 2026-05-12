@@ -13,7 +13,7 @@ import WatchLive from './features/live/WatchLive';
 import Register from './features/auth/Register';
 import TournamentDetails from './features/tournaments/TournamentDetails';
 import GamePage from './features/games/GamePage';
-import UserProfile from './components/User/Userprofile';
+import UserProfile from './features/User/Userprofile';
 import NotFound from './components/NotFound';
 
 export default function App() {
