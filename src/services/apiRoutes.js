@@ -7,4 +7,5 @@ export const REGISTER_TOURNAMENT = (id) => `tournaments/${id}/register/`;
 export const GAME_DETAILS = (id) => `games/game/${id}/`
 export const GAME_TOURNAMENTS = (id) => `tournaments/game/${id}/`
 export const WALLET_WITHDRAW = "accounts/wallet/withdraw/"
-
+export const WALLET_DEPOSIT_ORDER = "accounts/wallet/deposit/generate/"
+export const WALLET_DEPOSIT_VERIFY = "accounts/wallet/deposit/verify/"

@@ -1,23 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import api from '../../services/api';
-import WithdrawModal from './WithdrawModal'; // Ensure this path is correct!
+import WithdrawModal from './WithdrawModal'; 
+import DepositModal from './DepositModal'; // <--- IMPORT THE NEW MODAL
 
 const UserProfile = () => {
-  // Grab standard user info from Redux
   const { userInfo } = useSelector((state) => state.user);
   
-  // State for all the dynamic profile data from Django
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // State to control the Cash Out Modal
+  // Modal States
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [isDepositOpen, setIsDepositOpen] = useState(false); // <--- ADD DEPOSIT STATE
 
-  // Wrapped in useCallback so we can trigger it after a successful withdrawal
   const fetchProfile = useCallback(async () => {
     try {
-      // Hits your Django God View to get wallet, bio, and recent transactions
       const response = await api.get('/accounts/profile/me/'); 
       setProfileData(response.data);
     } catch (error) {
@@ -27,14 +25,12 @@ const UserProfile = () => {
     }
   }, []);
 
-  // Fetch the data as soon as the page loads (if they are logged in)
   useEffect(() => {
     if (userInfo) {
       fetchProfile();
     }
   }, [userInfo, fetchProfile]);
 
-  // Loading Skeleton / Spinner
   if (loading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex justify-center items-center bg-[#050505]">
@@ -48,7 +44,6 @@ const UserProfile = () => {
     );
   }
 
-  // Error State fallback
   if (!profileData) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex justify-center items-center bg-[#050505]">
@@ -78,7 +73,6 @@ const UserProfile = () => {
           )}
           
           <div className="absolute bottom-6 left-6 md:bottom-8 md:left-8 flex items-end gap-6">
-            {/* Avatar Block */}
             <div className="w-24 h-24 md:w-32 md:h-32 rounded-xl bg-[#0a0a0c] border-2 border-cyan-500 flex items-center justify-center shadow-[0_0_20px_rgba(8,145,178,0.4)] overflow-hidden relative group-hover:border-cyan-400 transition-colors duration-300">
               <span className="text-5xl md:text-7xl font-black text-cyan-500 uppercase z-10 group-hover:scale-110 transition-transform duration-300">
                 {profileData.username.charAt(0)}
@@ -86,7 +80,6 @@ const UserProfile = () => {
               <div className="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
             
-            {/* Title Block */}
             <div className="mb-2">
               <h1 className="text-3xl md:text-5xl font-black uppercase tracking-widest drop-shadow-lg">
                 {profileData.username}
@@ -107,7 +100,6 @@ const UserProfile = () => {
           {/* --- LEFT COLUMN: Wallet & Stats --- */}
           <div className="lg:col-span-1 space-y-6">
             
-            {/* The Wallet Card */}
             <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-6 relative overflow-hidden group hover:border-cyan-500/50 transition-colors duration-300">
               <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full blur-3xl group-hover:bg-green-500/10 transition-colors"></div>
               
@@ -117,7 +109,11 @@ const UserProfile = () => {
               </div>
               
               <div className="flex gap-3 relative z-10">
-                <button className="flex-1 bg-white text-black py-2.5 rounded text-xs font-black uppercase tracking-widest hover:bg-gray-200 hover:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all">
+                {/* WIRING UP THE DEPOSIT BUTTON */}
+                <button 
+                  onClick={() => setIsDepositOpen(true)}
+                  className="flex-1 bg-white text-black py-2.5 rounded text-xs font-black uppercase tracking-widest hover:bg-gray-200 hover:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all"
+                >
                   Deposit
                 </button>
                 <button 
@@ -129,7 +125,6 @@ const UserProfile = () => {
               </div>
             </div>
 
-            {/* Lifetime Earnings Card */}
             <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-6 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-3xl"></div>
               <h2 className="text-gray-500 font-bold uppercase tracking-widest text-xs mb-2">Lifetime Winnings</h2>
@@ -138,7 +133,6 @@ const UserProfile = () => {
               </div>
             </div>
 
-            {/* Bio Card */}
             <div className="bg-[#0a0a0c] border border-gray-800 rounded-xl p-6">
               <h2 className="text-gray-500 font-bold uppercase tracking-widest text-xs mb-4">Operative Bio</h2>
               <p className="text-sm text-gray-300 leading-relaxed italic">
@@ -161,8 +155,6 @@ const UserProfile = () => {
               {profileData.recent_transactions && profileData.recent_transactions.length > 0 ? (
                 <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-grow">
                   {profileData.recent_transactions.map((tx) => {
-                    
-                    // Determine styling based on transaction type
                     const isPositive = ['DEPOSIT', 'PRIZE', 'REFUND'].includes(tx.transaction_type);
                     const isPending = tx.transaction_type === 'WITHDRAWAL_PENDING';
                     
@@ -174,7 +166,7 @@ const UserProfile = () => {
                       sign = '+';
                     } else if (isPending) {
                       textColor = 'text-yellow-400';
-                      sign = '-'; // Pending withdrawals still deduct from balance
+                      sign = '-'; 
                     }
 
                     return (
@@ -220,8 +212,14 @@ const UserProfile = () => {
       <WithdrawModal 
         isOpen={isWithdrawOpen} 
         onClose={() => setIsWithdrawOpen(false)} 
-        onSuccess={fetchProfile} // Refreshes profile data automatically!
+        onSuccess={fetchProfile} 
         maxAmount={profileData.wallet_balance} 
+      />
+
+      <DepositModal 
+        isOpen={isDepositOpen} 
+        onClose={() => setIsDepositOpen(false)} 
+        onSuccess={fetchProfile} 
       />
 
     </div>
