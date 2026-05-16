@@ -9,3 +9,9 @@ export const GAME_TOURNAMENTS = (id) => `tournaments/game/${id}/`
 export const WALLET_WITHDRAW = "accounts/wallet/withdraw/"
 export const WALLET_DEPOSIT_ORDER = "accounts/wallet/deposit/generate/"
 export const WALLET_DEPOSIT_VERIFY = "accounts/wallet/deposit/verify/"
+
+
+// Chat
+export const GET_CHAT_ROOM= "chat/room";
+export const CHAT_ROOM_HISTORY = (id) => `chat/room/${id}/history`;
+export const SEND_CHAT = (id) => `chat/room/${id}/send/`;

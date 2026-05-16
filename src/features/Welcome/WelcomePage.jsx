@@ -10,6 +10,7 @@ import WelcomeSkeleton from './Components/WelcomeSkeleton';
 import browseImg from './assets/BrowseCard.png';
 import liveImg from './assets/LiveCard.png';
 import tournamentImg from './assets/Tournament.png';
+import CommunitySidebar from '../../components/Chat/CommunitySidebar';
 
 const MENU_ITEMS = [
   { id: 'browse', title: 'BROWSE GAMES', desc: 'Access the database', color: '#06f3ffff', path: '/browse', image: browseImg },
@@ -17,10 +18,18 @@ const MENU_ITEMS = [
   { id: 'live', title: 'LIVE STREAMS', desc: 'Signal Detected', color: '#EF4444', path: '/live', image: liveImg }
 ];
 
+
+
 const WelcomePage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+
+
+  
+  const[isChatOpen, setIsChatOpen] = useState(false);
+
+
 
   useEffect(() => {
     dispatch(setWelcome());
@@ -71,7 +80,13 @@ const WelcomePage = () => {
 
         {/* COMMUNITY BAR */}
         <div className="w-full max-w-4xl px-2">
-          <CommunityBar onClick={() => navigate('/community')} />
+          <CommunityBar onClick={() => setIsChatOpen(true)} />
+
+          <CommunitySidebar
+              isOpen = {isChatOpen}
+              onClose={() => setIsChatOpen(false)}
+              roomType='GLOBAL'
+          />
         </div>
       </div>
     </div>
