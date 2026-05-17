@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux'; // Added useSelector
 import { useNavigate } from 'react-router-dom';
 import { setWelcome } from '../../services/TechBackGround/techBackgroundSlice';
 
 import WelcomeCard from './Components/WelcomeCard';
 import CommunityBar from './Components/CommunityBar';
 import WelcomeSkeleton from './Components/WelcomeSkeleton';
+import LoginModal from '../auth/LoginModal'; // Already imported by you
 
 import browseImg from './assets/BrowseCard.png';
 import liveImg from './assets/LiveCard.png';
@@ -18,18 +19,18 @@ const MENU_ITEMS = [
   { id: 'live', title: 'LIVE STREAMS', desc: 'Signal Detected', color: '#EF4444', path: '/live', image: liveImg }
 ];
 
-
-
 const WelcomePage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-
-
   
-  const[isChatOpen, setIsChatOpen] = useState(false);
+  // 1. Get the user token from Redux state
+  const token = useSelector((state) => state.user?.token);
 
-
+  const [isLoading, setIsLoading] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  
+  // 2. Add state to control the Login Modal
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
     dispatch(setWelcome());
@@ -40,6 +41,17 @@ const WelcomePage = () => {
 
     return () => clearTimeout(timer);
   }, [dispatch]);
+
+  // 3. Create a handler to check auth before opening chat
+  const handleCommunityClick = () => {
+    if (token) {
+      // User is logged in -> Open Chat
+      setIsChatOpen(true);
+    } else {
+      // User is NOT logged in -> Open Login Modal
+      setIsLoginModalOpen(true);
+    }
+  };
 
   return (
     <div className="relative w-full min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center z-10 text-white font-mono p-4 overflow-x-hidden md:p-6 bg-transparent mt-[-4rem] md:mt-0">
@@ -80,12 +92,19 @@ const WelcomePage = () => {
 
         {/* COMMUNITY BAR */}
         <div className="w-full max-w-4xl px-2">
-          <CommunityBar onClick={() => setIsChatOpen(true)} />
+          {/* 4. Use the new handler here instead of setting chat state directly */}
+          <CommunityBar onClick={handleCommunityClick} />
 
+          {/* 5. Render both modals, controlled by their respective states */}
           <CommunitySidebar
-              isOpen = {isChatOpen}
+              isOpen={isChatOpen}
               onClose={() => setIsChatOpen(false)}
               roomType='GLOBAL'
+          />
+          
+          <LoginModal 
+              isOpen={isLoginModalOpen} 
+              onClose={() => setIsLoginModalOpen(false)} 
           />
         </div>
       </div>
@@ -94,7 +113,3 @@ const WelcomePage = () => {
 };
 
 export default WelcomePage;
-
-
-
-
