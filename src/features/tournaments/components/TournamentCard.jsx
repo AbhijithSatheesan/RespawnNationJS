@@ -23,18 +23,27 @@ const TournamentCard = ({ tournament }) => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
+  // PASSING ENTIRE OBJECT IN STATE
+  const handleCardClick = () => {
+    navigate(`/tournaments/${tournament.id}`, { 
+      state: { tournamentData: tournament } 
+    });
+  };
+
+  // PASSING ENTIRE OBJECT IN STATE
   const handleActionClick = (e) => {
     e.stopPropagation(); 
     
     if (tournament.status === 'REGISTRATION') {
-      // CHECK AUTHENTICATION HERE
       if (!userInfo) {
-        setIsLoginModalOpen(true); // Open login if not logged in
+        setIsLoginModalOpen(true); 
       } else {
-        setIsJoinModalOpen(true); // Open payment if logged in
+        setIsJoinModalOpen(true); 
       }
     } else {
-      navigate(`/tournaments/${tournament.id}`);
+      navigate(`/tournaments/${tournament.id}`, { 
+        state: { tournamentData: tournament } 
+      });
     }
   };
 
@@ -43,7 +52,6 @@ const TournamentCard = ({ tournament }) => {
     window.location.reload(); 
   };
 
-  // ... TournamentDetails sub-component remains exactly the same ...
   const TournamentDetails = () => (
      <div className="flex flex-col h-full w-full justify-between">
       {/* Top Header: Game & Status */}
@@ -122,9 +130,11 @@ const TournamentCard = ({ tournament }) => {
 
   return (
     <>
-      {/* Layout A / B Rendering logic ... */}
       {tournament.custom_banner ? (
-        <div className="relative w-full rounded-lg min-h-[220px] bg-black border border-gray-800 hover:border-cyan-500/60 transition-colors duration-300 group overflow-hidden shadow-lg flex items-center">
+        <div 
+          onClick={handleCardClick}
+          className="relative w-full rounded-lg min-h-[220px] bg-black border border-gray-800 hover:border-cyan-500/60 transition-colors duration-300 group overflow-hidden shadow-lg flex items-center cursor-pointer"
+        >
           <img src={tournament.custom_banner} alt="Banner" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700" />
           <div className="absolute inset-0 bg-black/50"></div>
           <div className="relative z-10 w-full p-6">
@@ -132,7 +142,10 @@ const TournamentCard = ({ tournament }) => {
           </div>
         </div>
       ) : (
-        <div className="w-full rounded-lg min-h-[220px] bg-black border border-gray-800 hover:border-cyan-500/60 transition-colors duration-300 group grid grid-cols-1 md:grid-cols-4 overflow-hidden shadow-lg">
+        <div 
+          onClick={handleCardClick}
+          className="w-full rounded-lg min-h-[220px] bg-black border border-gray-800 hover:border-cyan-500/60 transition-colors duration-300 group grid grid-cols-1 md:grid-cols-4 overflow-hidden shadow-lg cursor-pointer"
+        >
           <div className="col-span-1 border-b md:border-b-0 md:border-r border-gray-800 relative h-48 md:h-full bg-[#050505]">
             {tournament.format_overlay && <img src={tournament.format_overlay} className="absolute inset-0 w-full h-full object-cover" />}
           </div>
@@ -167,13 +180,3 @@ const TournamentCard = ({ tournament }) => {
 };
 
 export default TournamentCard;
-
-
-
-
-
-
-
-
-
-

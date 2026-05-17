@@ -35,6 +35,7 @@ export default function App() {
         
 
         <Route path = "/tournament" element = {<TournamentDashboard />} />
+        
         <Route path = "/browse" element = {<BrowseGames />} />
         <Route path = "/community" element = {<Community />} />
         <Route path = "/community" element = {<Community />} />

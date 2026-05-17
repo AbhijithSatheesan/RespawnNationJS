@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { useSelector } from 'react-redux'; // ADDED: For Auth Guard
 import api from '../../services/api';
 import { django_media_url } from '../../services/BackendConfig';
 import { GAME_DETAILS } from '../../services/apiRoutes';
@@ -12,13 +13,26 @@ import GameTabs from './gamepagecomponents/GameTabs';
 import TabAbout from './gamepagecomponents/TabAbout';
 import TrailerModal from './gamepagecomponents/TrailerModal';
 
+// ADDED: Chat and Auth Components
+import LoginModal from '../auth/LoginModal'; 
+import CommunityBar from '../Welcome/Components/CommunityBar';
+import CommunitySidebar from '../../components/Chat/CommunitySidebar';
+
 const GamePage = () => {
   const { id } = useParams();
+  
+  // 1. Grab user auth state from Redux
+  const { userInfo, token } = useSelector((state) => state.user);
+
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   
   const [activeTab, setActiveTab] = useState('about');
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+
+  // 2. Add state for the Modals
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchGameDetails = async () => {
@@ -33,6 +47,15 @@ const GamePage = () => {
     };
     fetchGameDetails();
   }, [id]);
+
+  // 3. Auth Guard Handler for Chat
+  const handleCommunityClick = () => {
+    if (!token && !userInfo) {
+      setIsLoginModalOpen(true); // Pop login if not authenticated
+    } else {
+      setIsChatOpen(true);       // Open chat if authenticated
+    }
+  };
 
   const getImageUrl = (imagePath) => {
     if (!imagePath) return null;
@@ -59,6 +82,12 @@ const GamePage = () => {
         bgImage={bgImage} 
         onOpenTrailer={() => setIsTrailerOpen(true)} 
       />
+
+      {/* GAME CHAT BAR */}
+      {/* Placed sleekly between the Hero and the Tabs */}
+      <div className="w-full max-w-4xl mx-auto px-6 mt-8 mb-4">
+        <CommunityBar onClick={handleCommunityClick} />
+      </div>
 
       <GameTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
@@ -92,12 +121,28 @@ const GamePage = () => {
         )}
       </div>
 
+      {/* ========================================== */}
+      {/* MODALS RENDERED HERE AT THE BOTTOM         */}
+      {/* ========================================== */}
+      
       {isTrailerOpen && game.trailer_1 && (
         <TrailerModal 
           trailerUrl={game.trailer_1} 
           onClose={() => setIsTrailerOpen(false)} 
         />
       )}
+
+      <LoginModal 
+        isOpen={isLoginModalOpen} 
+        onClose={() => setIsLoginModalOpen(false)} 
+      />
+
+      <CommunitySidebar
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        roomType='GAME'             // Triggers the Django GAME logic
+        contextId={game.id}         // Passes the specific Game ID
+      />
 
     </div>
   );

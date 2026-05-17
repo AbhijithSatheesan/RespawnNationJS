@@ -20,7 +20,7 @@ const GoogleLoginButton = ({ onClose }) => {
       });
 
       // Match the exact keys returned by your Django view
-      const { access_token, refresh_token, username } = response.data;
+      const { access_token, refresh_token, username, id } = response.data;
 
       // Save to Local Storage
       localStorage.setItem('access_token', access_token); 
@@ -28,11 +28,11 @@ const GoogleLoginButton = ({ onClose }) => {
       localStorage.setItem('user_info', JSON.stringify({ username }));
 
       // Update Redux
-      dispatch(loginSuccess({ token: access_token, user: { username: username } }));
+      dispatch(loginSuccess({ token: access_token, user: { username: username, id : id } }));
       
       // Close the modal and redirect
       if (onClose) onClose();
-      navigate('/browse');
+      navigate('/');
 
     } catch (err) {
       console.error("Google Login Backend Error:", err);

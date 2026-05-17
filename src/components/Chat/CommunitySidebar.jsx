@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import { createClient } from '@supabase/supabase-js';
 import api from '../../services/api';
 import { GET_CHAT_ROOM, CHAT_ROOM_HISTORY, SEND_CHAT } from '../../services/apiRoutes';
+
+// Import Login Modal so the Sidebar can act as its own security bouncer
+import LoginModal from '../../features/auth/LoginModal';
 
 // Initialize Supabase Client
 const supabase = createClient(
@@ -10,21 +14,28 @@ const supabase = createClient(
 );
 
 const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = null }) => {
+  
+  // 1. GRAB FULL AUTH STATE FROM REDUX
+  const { token, userInfo } = useSelector((state) => state.user);
+  const currentUser = userInfo?.username;
+  const currentUserId = userInfo?.id; // Now safely populated by your Redux update!
+
   const [roomId, setRoomId] = useState(null);
   const [roomName, setRoomName] = useState('Initializing Hub...');
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
+  // State for the intercepted Login Modal
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  
   const messageEndRef = useRef(null);
   
-  // 1. Keep a stable reference to onClose to prevent endless re-renders
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
 
-  // Auto-scroll chat box to bottom
   const scrollToBottom = () => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -34,21 +45,25 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
   }, [messages]);
 
   // ==========================================
-  // THE MASTER HISTORY CONTROLLER
+  // THE MASTER HISTORY & AUTH CONTROLLER
   // ==========================================
   useEffect(() => {
     if (!isOpen) return;
 
+    // THE BOUNCER: If user isn't logged in, intercept the open request!
+    if (!token) {
+      setIsLoginModalOpen(true); 
+      onCloseRef.current();      
+      return;                    
+    }
+
     // 1. When sidebar opens, push a "fake" page to the browser history
     window.history.pushState({ isSidebarOpen: true }, '');
 
-    // 2. Listen for the phone's physical back button (or browser back button)
     const handlePopState = (event) => {
-      // The browser already removed the fake page, so we just tell React to close.
       onCloseRef.current();
     };
 
-    // 3. Listen for Desktop Escape key
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') requestClose();
     };
@@ -56,35 +71,29 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('keydown', handleKeyDown);
 
-    // Cleanup when sidebar closes or unmounts
     return () => {
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('keydown', handleKeyDown);
       
-      // Failsafe: If React closed the component but the fake page is still in history, remove it!
       if (window.history.state?.isSidebarOpen) {
         window.history.back();
       }
     };
-  }, [isOpen]);
+  }, [isOpen, token]);
 
-  // 4. The Unified Close Function (Use this for the Overlay and 'X' button)
   const requestClose = () => {
-    // If the fake page is in the history, triggering "back()" will cleanly fire 'popstate'
     if (window.history.state?.isSidebarOpen) {
       window.history.back(); 
     } else {
-      // Fallback just in case
       onCloseRef.current(); 
     }
   };
-
 
   // ==========================================
   // PHASE 1: Fetch Room & History
   // ==========================================
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !token) return; 
 
     const initializeChat = async () => {
       setIsLoading(true);
@@ -111,13 +120,13 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
     };
 
     initializeChat();
-  }, [isOpen, roomType, contextId]);
+  }, [isOpen, roomType, contextId, token]);
 
   // ==========================================
   // PHASE 2: Open WebSocket Tunnel
   // ==========================================
   useEffect(() => {
-    if (!roomId || !isOpen) return;
+    if (!roomId || !isOpen || !token) return;
 
     const channel = supabase
       .channel(`room_${roomId}`)
@@ -131,7 +140,6 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
         },
         async (payload) => {
           setMessages((prev) => {
-            // Prevent duplicating messages we just sent
             if (prev.some(m => m.id === payload.new.id)) return prev;
             return [...prev, payload.new];
           });
@@ -142,7 +150,7 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId, isOpen]);
+  }, [roomId, isOpen, token]);
 
   // ==========================================
   // PHASE 3: Send Messages
@@ -163,7 +171,7 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
 
   return (
     <>
-      {/* BACKGROUND BLUR OVERLAY - Now uses the unified requestClose */}
+      {/* BACKGROUND BLUR OVERLAY */}
       {isOpen && (
         <div 
           className="fixed inset-0 w-full h-full bg-black/60 backdrop-blur-sm z-[90] animate-fadeIn cursor-pointer" 
@@ -177,7 +185,7 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
         isOpen ? 'translate-x-0 shadow-[-10px_0_30px_rgba(16,185,129,0.1)]' : 'translate-x-full'
       }`}>
         
-        {/* HEADER - Now uses the unified requestClose */}
+        {/* HEADER */}
         <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#0a0f12]">
           <div>
             <h2 className="text-emerald-400 font-black tracking-widest uppercase">{roomName}</h2>
@@ -198,17 +206,44 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
                </span>
             </div>
           ) : messages.length > 0 ? (
-            messages.map((msg) => (
-              <div key={msg.id} className="bg-black/30 border border-gray-900 rounded p-3 space-y-1 animate-fadeIn">
-                <div className="flex justify-between items-center text-[10px] font-bold">
-                  <span className="text-emerald-500/80">@{msg.sender_username || `User_${msg.sender_id || msg.sender}`}</span>
-                  <span className="text-gray-600">
-                    {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                  </span>
+            messages.map((msg) => {
+              
+              // =========================================================
+              // THE BULLETPROOF ID FIX
+              // =========================================================
+              // By checking if currentUserId/currentUser actually exist first, 
+              // we prevent 'undefined === undefined' from matching true.
+              const isOwnMessage = Boolean(
+                (currentUser && msg.sender_username === currentUser) || 
+                (currentUserId && msg.sender_id && String(msg.sender_id) === String(currentUserId)) ||
+                (currentUserId && msg.sender && String(msg.sender) === String(currentUserId))
+              );
+
+              return (
+                <div 
+                  key={msg.id} 
+                  className={`flex flex-col animate-fadeIn ${isOwnMessage ? 'items-end' : 'items-start'}`}
+                >
+                  <div className={`max-w-[85%] rounded p-3 space-y-1 ${
+                    isOwnMessage 
+                      ? 'bg-emerald-600/20 border border-emerald-500/30' 
+                      : 'bg-black/40 border border-gray-800'
+                  }`}>
+                    <div className="flex justify-between items-center gap-4 text-[10px] font-bold">
+                      <span className={isOwnMessage ? 'text-emerald-400' : 'text-cyan-500/80'}>
+                        @{isOwnMessage ? 'You' : (msg.sender_username || `User_${msg.sender_id || msg.sender}`)}
+                      </span>
+                      <span className="text-gray-500">
+                        {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-200 leading-relaxed break-words mt-1">
+                      {msg.text}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-200 leading-relaxed break-words mt-1">{msg.text}</p>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
               <span className="text-3xl mb-2 grayscale">💬</span>
@@ -237,8 +272,13 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
             Send
           </button>
         </form>
-
       </div>
+
+      {/* THE BOUNCER MODAL */}
+      <LoginModal 
+        isOpen={isLoginModalOpen} 
+        onClose={() => setIsLoginModalOpen(false)} 
+      />
     </>
   );
 };

@@ -37,16 +37,17 @@ const LoginModal = ({ isOpen, onClose }) => {
         });
         
         // MATCHING THE DJANGO BACKEND UNDERSCORE FORMAT
-        const { access_token, refresh_token, username } = response.data;
+        const { access_token, refresh_token, username, id } = response.data;
 
         localStorage.setItem('access_token', access_token); 
         localStorage.setItem('refresh_token', refresh_token);
         localStorage.setItem('user_info', JSON.stringify({ username }));
+        localStorage.setItem('id', id);
 
-        dispatch(loginSuccess({ token: access_token, user: { username: username } }));
+        dispatch(loginSuccess({ token: access_token, user: { username: username, id : id }, }));
         
         onClose(); // Close the modal on success
-        navigate('/browse'); // Send them into the app
+        navigate('/'); // Send them into the app
 
       } catch (err) {
         console.error("Login Error:", err);
