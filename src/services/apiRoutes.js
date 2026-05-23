@@ -10,6 +10,7 @@ export const WALLET_WITHDRAW = "accounts/wallet/withdraw/"
 export const WALLET_DEPOSIT_ORDER = "accounts/wallet/deposit/generate/"
 export const WALLET_DEPOSIT_VERIFY = "accounts/wallet/deposit/verify/"
 export const GET_CATEGORY_GAMES = (name) => `games/category/${name}/`;
+export const SEARCH_GAMES = 'games/search/';
 
 
 // Chat
