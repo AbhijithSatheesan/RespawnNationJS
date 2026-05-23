@@ -15,6 +15,11 @@ import TournamentDetails from './features/tournaments/TournamentDetails';
 import GamePage from './features/games/GamePage';
 import UserProfile from './features/User/Userprofile';
 import NotFound from './components/NotFound';
+import ActivateAccount from './features/auth/ActivateAccount';
+import ForgotPassword from './features/auth/ForgotPassword';
+import ResetPasswordConfirm from './features/auth/ResetPasswordConfirm';
+import CategoryGamesPage from './features/games/browsepagecomponents/CategoryGamesPage';
+
 
 export default function App() {
   return (
@@ -41,7 +46,12 @@ export default function App() {
         <Route path = "/community" element = {<Community />} />
         <Route path="/tournaments/:id" element={<TournamentDetails />} />
         <Route path="/game/:id" element={<GamePage />} />
+        
         <Route path = "/profile" element = {<UserProfile />} />
+        <Route path="/activate/:uid/:token" element={<ActivateAccount />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:uid/:token" element={<ResetPasswordConfirm />} />
+        <Route path="/category/:categoryName" element={<CategoryGamesPage />} />
 
         <Route path='*' element = {<NotFound />} />
       </Route>
