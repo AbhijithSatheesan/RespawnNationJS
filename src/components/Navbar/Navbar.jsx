@@ -3,8 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import LoginModal from '../../features/auth/LoginModal';
 import { logout } from '../../features/auth/userSlice'; 
-
-// 1. IMPORT YOUR SEARCH BAR
 import SearchBar from '../../features/games/SearchBar';
 
 const Navbar = () => {
@@ -17,6 +15,9 @@ const Navbar = () => {
   const dropdownRef = useRef(null);
   
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  
+  // --- NEW: State for Mobile Search Toggle ---
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -41,8 +42,11 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="fixed top-0 w-full z-50 bg-[#050505]/90 backdrop-blur-md border-b border-gray-800 h-16 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex justify-between items-center">
+      {/* Removed fixed h-16 from the <nav> so it can expand when mobile search opens */}
+      <nav className="fixed top-0 w-full z-50 bg-[#050505]/90 backdrop-blur-md border-b border-gray-800 transition-all duration-300">
+        
+        {/* Added h-16 here to keep the main row the same size */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
           
           {/* --- LEFT SIDE: LOGO & LINKS --- */}
           <div className="flex items-center gap-8">
@@ -57,20 +61,30 @@ const Navbar = () => {
             </div>
           </div>
 
-          {/* --- CENTER: SEARCH BAR --- */}
-          {/* Added flex-1 and justify-center to perfectly center it, hidden on small screens */}
+          {/* --- CENTER: DESKTOP SEARCH BAR --- */}
           <div className="hidden md:flex flex-1 justify-center px-8">
             <div className="w-full max-w-md">
               <SearchBar />
             </div>
           </div>
 
-          {/* --- RIGHT SIDE: AUTH & PROFILE --- */}
+          {/* --- RIGHT SIDE: AUTH, PROFILE, & MOBILE SEARCH TOGGLE --- */}
           <div className="flex items-center gap-4">
+            
+            {/* MOBILE SEARCH ICON (Only shows on small screens) */}
+            <button 
+              onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+              className="md:hidden text-gray-400 hover:text-cyan-400 p-2 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+
             {!userInfo ? (
               <button 
                 onClick={() => setIsLoginModalOpen(true)}
-                className="bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-2 text-xs font-black uppercase tracking-widest rounded transition-all shadow-[0_0_15px_rgba(8,145,178,0.3)] hover:shadow-[0_0_20px_rgba(8,145,178,0.6)]"
+                className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 md:px-6 py-2 text-xs font-black uppercase tracking-widest rounded transition-all shadow-[0_0_15px_rgba(8,145,178,0.3)] hover:shadow-[0_0_20px_rgba(8,145,178,0.6)]"
               >
                 Log In
               </button>
@@ -79,9 +93,9 @@ const Navbar = () => {
                 <div className="relative">
                   <button 
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="w-10 h-10 rounded bg-gray-800 border border-gray-700 hover:border-cyan-500 flex items-center justify-center overflow-hidden transition-all duration-300 group"
+                    className="w-8 h-8 md:w-10 md:h-10 rounded bg-gray-800 border border-gray-700 hover:border-cyan-500 flex items-center justify-center overflow-hidden transition-all duration-300 group"
                   >
-                    <span className="text-cyan-500 font-black uppercase text-lg group-hover:scale-110 transition-transform">
+                    <span className="text-cyan-500 font-black uppercase text-base md:text-lg group-hover:scale-110 transition-transform">
                       {userInfo.username ? userInfo.username.charAt(0) : '?'}
                     </span>
                   </button>
@@ -103,6 +117,15 @@ const Navbar = () => {
             )}
           </div>
         </div>
+
+        {/* --- MOBILE SEARCH DROPDOWN ROW --- */}
+        {/* Expands directly below the navbar when the mobile icon is clicked */}
+        {isMobileSearchOpen && (
+          <div className="md:hidden px-4 pb-4 animate-fadeIn">
+            <SearchBar />
+          </div>
+        )}
+
       </nav>
 
       <LoginModal 
