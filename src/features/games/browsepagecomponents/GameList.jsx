@@ -8,11 +8,13 @@ const GameList = ({ title, games, categoryName, isLargeRow = false }) => {
   // --- DRAG TO SCROLL LOGIC ---
   const scrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [hasDragged, setHasDragged] = useState(false); // NEW: Tracks actual movement
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
 
   const handleMouseDown = (e) => {
     setIsDragging(true);
+    setHasDragged(false); // Reset drag state on every new click
     setStartX(e.pageX - scrollRef.current.offsetLeft);
     setScrollLeft(scrollRef.current.scrollLeft);
   };
@@ -28,8 +30,15 @@ const GameList = ({ title, games, categoryName, isLargeRow = false }) => {
   const handleMouseMove = (e) => {
     if (!isDragging) return;
     e.preventDefault(); 
+    
     const x = e.pageX - scrollRef.current.offsetLeft;
     const walk = (x - startX) * 2; 
+    
+    // If the mouse moves more than 5px, it's a drag, not a click!
+    if (Math.abs(x - startX) > 5) {
+      setHasDragged(true);
+    }
+    
     scrollRef.current.scrollLeft = scrollLeft - walk;
   };
   // -----------------------------
@@ -60,7 +69,7 @@ const GameList = ({ title, games, categoryName, isLargeRow = false }) => {
         )}
       </div>
 
-      {/* The Scrollable Row with Custom Styled Scrollbar */}
+      {/* The Scrollable Row */}
       <div className="relative">
         <div 
           ref={scrollRef}
@@ -82,7 +91,17 @@ const GameList = ({ title, games, categoryName, isLargeRow = false }) => {
           `}
         >
           {games.map((game) => (
-            <div key={game.id} className={`snap-start shrink-0 ${isDragging ? 'pointer-events-none' : ''}`}>
+            <div 
+              key={game.id} 
+              className="snap-start shrink-0"
+              // NEW: Intercept the click before it reaches the GameCard. 
+              // If we dragged, stop the click. If we didn't drag, let it pass.
+              onClickCapture={(e) => {
+                if (hasDragged) {
+                  e.stopPropagation();
+                }
+              }}
+            >
               <GameCard
                 id={game.id}
                 cover={game.cover}
@@ -94,7 +113,7 @@ const GameList = ({ title, games, categoryName, isLargeRow = false }) => {
           ))}
         </div>
         
-        {/* Right side fade (height adjusted to h-[calc(100%-1.5rem)] to not block the scrollbar) */}
+        {/* Right side fade */}
         <div className="absolute top-0 right-0 h-[calc(100%-1.5rem)] w-12 md:w-16 bg-gradient-to-l from-[#121212] to-transparent pointer-events-none"></div>
       </div>
     </div>

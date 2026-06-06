@@ -15,8 +15,6 @@ const Navbar = () => {
   const dropdownRef = useRef(null);
   
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  
-  // --- NEW: State for Mobile Search Toggle ---
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   useEffect(() => {
@@ -33,6 +31,7 @@ const Navbar = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user_info');
+    localStorage.removeItem('id');
     
     dispatch(logout());
     
@@ -40,12 +39,26 @@ const Navbar = () => {
     navigate('/');
   };
 
+  // --- ONSITE CLOUDINARY IMAGE OPTIMIZER ---
+  const getOptimizedAvatar = (url) => {
+    if (!url) return null;
+    
+    // Check if it's a Cloudinary asset and contains the standard /upload/ segment
+    if (url.includes('cloudinary.com') && url.includes('/upload/')) {
+      const parts = url.split('/upload/');
+      // Inject parameters: width 80, height 80, crop fill, smart face gravity, auto quality & format
+      return `${parts[0]}/upload/w_80,h_80,c_fill,g_face,q_auto,f_auto/${parts[1]}`;
+    }
+    
+    return url; // Fallback to original url if local or untransformed
+  };
+
+  const optimizedAvatarUrl = userInfo ? getOptimizedAvatar(userInfo.profile_picture) : null;
+
   return (
     <>
-      {/* Removed fixed h-16 from the <nav> so it can expand when mobile search opens */}
       <nav className="fixed top-0 w-full z-50 bg-[#050505]/90 backdrop-blur-md border-b border-gray-800 transition-all duration-300">
         
-        {/* Added h-16 here to keep the main row the same size */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
           
           {/* --- LEFT SIDE: LOGO & LINKS --- */}
@@ -71,7 +84,6 @@ const Navbar = () => {
           {/* --- RIGHT SIDE: AUTH, PROFILE, & MOBILE SEARCH TOGGLE --- */}
           <div className="flex items-center gap-4">
             
-            {/* MOBILE SEARCH ICON (Only shows on small screens) */}
             <button 
               onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
               className="md:hidden text-gray-400 hover:text-cyan-400 p-2 transition-colors"
@@ -93,11 +105,20 @@ const Navbar = () => {
                 <div className="relative">
                   <button 
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="w-8 h-8 md:w-10 md:h-10 rounded bg-gray-800 border border-gray-700 hover:border-cyan-500 flex items-center justify-center overflow-hidden transition-all duration-300 group"
+                    className="w-8 h-8 md:w-10 md:h-10 rounded bg-gray-800 border border-gray-700 hover:border-cyan-500 flex items-center justify-center overflow-hidden transition-all duration-300 group shadow-lg"
                   >
-                    <span className="text-cyan-500 font-black uppercase text-base md:text-lg group-hover:scale-110 transition-transform">
-                      {userInfo.username ? userInfo.username.charAt(0) : '?'}
-                    </span>
+                    {/* --- CONDITIONALLY RENDER IMAGE OR TEXT FALBACK --- */}
+                    {optimizedAvatarUrl ? (
+                      <img 
+                        src={optimizedAvatarUrl} 
+                        alt={userInfo.username} 
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                    ) : (
+                      <span className="text-cyan-500 font-black uppercase text-base md:text-lg group-hover:scale-110 transition-transform duration-300">
+                        {userInfo.username ? userInfo.username.charAt(0) : '?'}
+                      </span>
+                    )}
                   </button>
 
                   {isDropdownOpen && (
@@ -119,7 +140,6 @@ const Navbar = () => {
         </div>
 
         {/* --- MOBILE SEARCH DROPDOWN ROW --- */}
-        {/* Expands directly below the navbar when the mobile icon is clicked */}
         {isMobileSearchOpen && (
           <div className="md:hidden px-4 pb-4 animate-fadeIn">
             <SearchBar />

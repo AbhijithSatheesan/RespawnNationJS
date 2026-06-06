@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+
 import api from '../../services/api';
 import { loginStart, loginSuccess, loginFailure } from './userSlice';
 import GoogleLoginButton from './GoogleLoginButton'; 
@@ -50,17 +52,17 @@ const LoginModal = ({ isOpen, onClose }) => {
             }
         });
         
-        // Extract the missing data from the second response
-        const { username, id } = userResponse.data;
+        // --- ADDED: Extract the profile_picture from the response ---
+        const { username, id, profile_picture } = userResponse.data;
 
-        // STEP 3: Restore the exact localStorage state your app expects
-        localStorage.setItem('user_info', JSON.stringify({ username }));
+        // STEP 3: Save to localStorage so it survives page reloads
+        localStorage.setItem('user_info', JSON.stringify({ username, profile_picture }));
         localStorage.setItem('id', id);
 
-        // Dispatch everything to Redux
+        // --- ADDED: Dispatch profile_picture to Redux ---
         dispatch(loginSuccess({ 
           token: access, 
-          user: { username: username, id: id } 
+          user: { username, id, profile_picture } 
         }));
         
         onClose(); 
@@ -83,7 +85,8 @@ const LoginModal = ({ isOpen, onClose }) => {
 
         await api.post(AUTH_REGISTER, dataToSend);
         
-        alert("Registration sequence initiated! Check your registered inbox for the activation link.");
+        toast.success("Registration sequence initiated! Check your inbox.");
+
         setSignInForm(true);
         setFormData({ username: '', email: '', password: '' });
 
@@ -98,6 +101,7 @@ const LoginModal = ({ isOpen, onClose }) => {
           processedError = Array.isArray(rawError) ? rawError[0] : rawError;
         }
         setRegisterError(processedError);
+        // toast.error(processedError);
       } finally {
         setIsRegisterLoading(false);
       }

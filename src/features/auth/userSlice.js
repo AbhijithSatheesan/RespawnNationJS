@@ -14,7 +14,7 @@ const userSlice = createSlice({
     name: 'user',
     initialState: {
         token: storedToken || null,
-        userInfo: initialUser, // Now Redux starts with both username AND id!
+        userInfo: initialUser,
         loading: false,
         error: null,
     },
@@ -38,15 +38,25 @@ const userSlice = createSlice({
             localStorage.removeItem("access_token");
             localStorage.removeItem("refresh_token");
             localStorage.removeItem("user_info");
-            localStorage.removeItem("id"); // ADDED: Clear the ID on logout!
+            localStorage.removeItem("id");
             
             // clear state
             state.token = null;
             state.userInfo = null;
             state.error = null;
-        }
+        },
+
+        updateProfilePicture: (state, action) => {
+            if (state.userInfo) {
+                // Update Redux state
+                state.userInfo.profile_picture = action.payload;
+                // Update LocalStorage so it survives a page refresh!
+                localStorage.setItem("user_info", JSON.stringify(state.userInfo));
+            }
+        },
+
     }
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout } = userSlice.actions;
+export const { loginStart, loginSuccess, loginFailure, logout, updateProfilePicture } = userSlice.actions;
 export default userSlice.reducer;
