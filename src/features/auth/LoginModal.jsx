@@ -39,7 +39,7 @@ const LoginModal = ({ isOpen, onClose }) => {
           password: formData.password
         });
         
-        const { access, refresh } = response.data;
+        const { access, refresh, is_admin } = response.data;
 
         // Save tokens immediately so our API instance can use them
         localStorage.setItem('access_token', access); 
@@ -56,13 +56,13 @@ const LoginModal = ({ isOpen, onClose }) => {
         const { username, id, profile_picture } = userResponse.data;
 
         // STEP 3: Save to localStorage so it survives page reloads
-        localStorage.setItem('user_info', JSON.stringify({ username, profile_picture }));
+        localStorage.setItem('user_info', JSON.stringify({ username, profile_picture, is_admin }));
         localStorage.setItem('id', id);
 
         // --- ADDED: Dispatch profile_picture to Redux ---
         dispatch(loginSuccess({ 
           token: access, 
-          user: { username, id, profile_picture } 
+          user: { username, id, profile_picture, is_admin } 
         }));
         
         onClose(); 

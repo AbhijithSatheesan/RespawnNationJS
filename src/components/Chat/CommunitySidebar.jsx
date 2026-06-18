@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { createClient } from '@supabase/supabase-js';
-import api from '../../services/api';
-import { GET_CHAT_ROOM, CHAT_ROOM_HISTORY, SEND_CHAT } from '../../services/apiRoutes';
+import toast from 'react-hot-toast'; 
 
-// Import Login Modal so the Sidebar can act as its own security bouncer
+import api from '../../services/api';
+import { GET_CHAT_ROOM, CHAT_ROOM_HISTORY, SEND_CHAT, DELETE_CHAT } from '../../services/apiRoutes';
+
 import LoginModal from '../../features/auth/LoginModal';
+import ChatMessage from './ChatMessage'; 
 
 // Initialize Supabase Client
 const supabase = createClient(
@@ -15,58 +17,52 @@ const supabase = createClient(
 
 const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = null }) => {
   
-  // 1. GRAB FULL AUTH STATE FROM REDUX
+  // 1. SECURE REDUX EXTRACTION
   const { token, userInfo } = useSelector((state) => state.user);
   const currentUser = userInfo?.username;
-  const currentUserId = userInfo?.id; // Now safely populated by your Redux update!
+  const currentUserId = userInfo?.id; 
+  const isAdmin = userInfo?.is_admin; 
 
+  // 2. CHAT & PAGINATION STATE
   const [roomId, setRoomId] = useState(null);
   const [roomName, setRoomName] = useState('Initializing Hub...');
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // State for the intercepted Login Modal
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // 3. BOUNCER CONTROLS
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   
+  // 4. REF POINTERS (For Scroll Control Math)
   const messageEndRef = useRef(null);
-  
+  const chatFeedRef = useRef(null); 
   const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
+  
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   const scrollToBottom = () => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   // ==========================================
-  // THE MASTER HISTORY & AUTH CONTROLLER
+  // URL HISTORY & ACCESS BOUNCER
   // ==========================================
   useEffect(() => {
     if (!isOpen) return;
 
-    // THE BOUNCER: If user isn't logged in, intercept the open request!
     if (!token) {
       setIsLoginModalOpen(true); 
       onCloseRef.current();      
       return;                    
     }
 
-    // 1. When sidebar opens, push a "fake" page to the browser history
     window.history.pushState({ isSidebarOpen: true }, '');
-
-    const handlePopState = (event) => {
-      onCloseRef.current();
-    };
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') requestClose();
-    };
+    const handlePopState = () => { onCloseRef.current(); };
+    const handleKeyDown = (e) => { if (e.key === 'Escape') requestClose(); };
 
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('keydown', handleKeyDown);
@@ -74,23 +70,17 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
     return () => {
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('keydown', handleKeyDown);
-      
-      if (window.history.state?.isSidebarOpen) {
-        window.history.back();
-      }
+      if (window.history.state?.isSidebarOpen) window.history.back();
     };
   }, [isOpen, token]);
 
   const requestClose = () => {
-    if (window.history.state?.isSidebarOpen) {
-      window.history.back(); 
-    } else {
-      onCloseRef.current(); 
-    }
+    if (window.history.state?.isSidebarOpen) window.history.back(); 
+    else onCloseRef.current(); 
   };
 
   // ==========================================
-  // PHASE 1: Fetch Room & History
+  // PHASE 1: Fetch Room & Initial History
   // ==========================================
   useEffect(() => {
     if (!isOpen || !token) return; 
@@ -108,8 +98,13 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
         setRoomId(targetRoomId);
         setRoomName(roomRes.data.name);
 
-        const historyRes = await api.get(CHAT_ROOM_HISTORY(targetRoomId));
-        setMessages(historyRes.data);
+        // Access Archive Block 1 (Page 1)
+        const historyRes = await api.get(`${CHAT_ROOM_HISTORY(targetRoomId)}?page=1`);
+        setMessages(historyRes.data.results);
+        setHasMore(historyRes.data.has_more); 
+        setPage(1);
+        
+        setTimeout(scrollToBottom, 100);
 
       } catch (err) {
         console.error("Failed to load secure chat environment", err);
@@ -123,7 +118,42 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
   }, [isOpen, roomType, contextId, token]);
 
   // ==========================================
-  // PHASE 2: Open WebSocket Tunnel
+  // PHASE 1.5: Pagination (Load Previous Records)
+  // ==========================================
+  const loadPreviousMessages = async () => {
+    if (!roomId || !hasMore) return;
+    
+    setIsLoadingMore(true);
+    const nextPage = page + 1;
+    
+    // Trap current scroll parameters to prevent visual screen jumping on render
+    const currentScrollHeight = chatFeedRef.current.scrollHeight;
+
+    try {
+      const res = await api.get(`${CHAT_ROOM_HISTORY(roomId)}?page=${nextPage}`);
+      const olderMessages = res.data.results;
+      
+      setMessages((prev) => [...olderMessages, ...prev]); 
+      setHasMore(res.data.has_more);
+      setPage(nextPage);
+
+      // Readjust scroll anchors cleanly
+      setTimeout(() => {
+        if (chatFeedRef.current) {
+          const newScrollHeight = chatFeedRef.current.scrollHeight;
+          chatFeedRef.current.scrollTop = newScrollHeight - currentScrollHeight;
+        }
+      }, 0);
+
+    } catch (err) {
+      console.error("Pagination block processing failed", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  // ==========================================
+  // PHASE 2: WebSocket Tunnel (Realtime Listener)
   // ==========================================
   useEffect(() => {
     if (!roomId || !isOpen || !token) return;
@@ -133,16 +163,25 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*', // Listen to INSERTS and UPDATES natively
           schema: 'public',
           table: 'chat_chatmessage',
           filter: `room_id=eq.${roomId}`,
         },
         async (payload) => {
-          setMessages((prev) => {
-            if (prev.some(m => m.id === payload.new.id)) return prev;
-            return [...prev, payload.new];
-          });
+          if (payload.eventType === 'INSERT') {
+            setMessages((prev) => {
+              if (prev.some(m => m.id === payload.new.id)) return prev;
+              return [...prev, payload.new];
+            });
+            setTimeout(scrollToBottom, 100);
+          } 
+          else if (payload.eventType === 'UPDATE') {
+            // SOFT DELETE INTERCEPT: Catch mutation event from other clients
+            if (payload.new.is_deleted === true) {
+              setMessages((prev) => prev.filter((m) => m.id !== payload.new.id));
+            }
+          }
         }
       )
       .subscribe();
@@ -153,7 +192,7 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
   }, [roomId, isOpen, token]);
 
   // ==========================================
-  // PHASE 3: Send Messages
+  // PHASE 3: Transmission Dispatches
   // ==========================================
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -165,27 +204,45 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
     try {
       await api.post(SEND_CHAT(roomId), { text: currentText });
     } catch (err) {
-      console.error("Message drop detected", err);
+      console.error("Transmission dropped by network", err);
+      toast?.error("Failed to route transmission.");
     }
   };
 
+  // ==========================================
+  // PHASE 4: Optimistic Data Purges
+  // ==========================================
+  const executeDelete = async (targetId) => {
+    // OPTIMISTIC UPDATE: Instant execution feedback loop
+    setMessages((prev) => prev.filter((m) => m.id !== targetId));
+    
+    try {
+      await api.delete(DELETE_CHAT(targetId)); 
+    } catch (err) {
+      console.error("Purge instruction rejected by core engine", err);
+      toast?.error("Purge failed. Access validation error.");
+    } 
+  };
+
+  // ==========================================
+  // VIEW ENGINE
+  // ==========================================
   return (
     <>
-      {/* BACKGROUND BLUR OVERLAY */}
+      {/* BACKGROUND OVERLAY */}
       {isOpen && (
         <div 
           className="fixed inset-0 w-full h-full bg-black/60 backdrop-blur-sm z-[90] animate-fadeIn cursor-pointer" 
           onClick={requestClose} 
-          aria-label="Close sidebar overlay"
         />
       )}
 
-      {/* SIDEBAR CONTAINER */}
+      {/* PANEL INTERFACE */}
       <div className={`fixed top-0 right-0 h-full w-full sm:w-[450px] bg-[#070b0d] border-l border-emerald-500/20 z-[100] transform transition-transform duration-500 ease-out flex flex-col font-mono text-white ${
         isOpen ? 'translate-x-0 shadow-[-10px_0_30px_rgba(16,185,129,0.1)]' : 'translate-x-full'
       }`}>
         
-        {/* HEADER */}
+        {/* HEADER BLOCK */}
         <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#0a0f12]">
           <div>
             <h2 className="text-emerald-400 font-black tracking-widest uppercase">{roomName}</h2>
@@ -196,8 +253,8 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
           </button>
         </div>
 
-        {/* CHAT MESSAGES DISPLAY */}
-        <div className="flex-grow p-6 overflow-y-auto space-y-4 custom-scrollbar bg-[#05080a]">
+        {/* MESSAGES VIEWPORT */}
+        <div ref={chatFeedRef} className="flex-grow p-6 overflow-y-auto space-y-4 custom-scrollbar bg-[#05080a]">
           {isLoading ? (
             <div className="h-full flex flex-col items-center justify-center gap-3">
                <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
@@ -205,56 +262,46 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
                 Initializing Secure Stream...
                </span>
             </div>
-          ) : messages.length > 0 ? (
-            messages.map((msg) => {
-              
-              // =========================================================
-              // THE BULLETPROOF ID FIX
-              // =========================================================
-              // By checking if currentUserId/currentUser actually exist first, 
-              // we prevent 'undefined === undefined' from matching true.
-              const isOwnMessage = Boolean(
-                (currentUser && msg.sender_username === currentUser) || 
-                (currentUserId && msg.sender_id && String(msg.sender_id) === String(currentUserId)) ||
-                (currentUserId && msg.sender && String(msg.sender) === String(currentUserId))
-              );
-
-              return (
-                <div 
-                  key={msg.id} 
-                  className={`flex flex-col animate-fadeIn ${isOwnMessage ? 'items-end' : 'items-start'}`}
-                >
-                  <div className={`max-w-[85%] rounded p-3 space-y-1 ${
-                    isOwnMessage 
-                      ? 'bg-emerald-600/20 border border-emerald-500/30' 
-                      : 'bg-black/40 border border-gray-800'
-                  }`}>
-                    <div className="flex justify-between items-center gap-4 text-[10px] font-bold">
-                      <span className={isOwnMessage ? 'text-emerald-400' : 'text-cyan-500/80'}>
-                        @{isOwnMessage ? 'You' : (msg.sender_username || `User_${msg.sender_id || msg.sender}`)}
-                      </span>
-                      <span className="text-gray-500">
-                        {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-200 leading-relaxed break-words mt-1">
-                      {msg.text}
-                    </p>
-                  </div>
-                </div>
-              );
-            })
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
-              <span className="text-3xl mb-2 grayscale">💬</span>
-              <p className="text-xs uppercase tracking-widest font-bold">Channel Quiet</p>
-              <p className="text-[10px] mt-1 text-gray-400">Send a broadcast to initialize timeline.</p>
-            </div>
+            <>
+              {/* HISTORICAL RECORDS DISCOVERY ACTION */}
+              {hasMore && (
+                <div className="flex justify-center pb-4">
+                  <button 
+                    onClick={loadPreviousMessages}
+                    disabled={isLoadingMore}
+                    className="flex items-center gap-2 bg-[#0a0f12] border border-gray-800 hover:border-emerald-500/50 text-emerald-500/80 hover:text-emerald-400 text-xs font-bold px-4 py-2 rounded-full uppercase tracking-widest transition-all"
+                  >
+                    {isLoadingMore ? "Accessing Archives..." : "↑ Load Previous"}
+                  </button>
+                </div>
+              )}
+
+              {/* DYNAMIC TIMELINE RECONSTRUCTION */}
+              {messages.length > 0 ? (
+                messages.map((msg) => (
+                  <ChatMessage 
+                    key={msg.id} 
+                    msg={msg} 
+                    currentUserId={currentUserId}
+                    currentUser={currentUser}
+                    isAdmin={isAdmin}
+                    onDelete={executeDelete} 
+                  />
+                ))
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
+                  <span className="text-3xl mb-2 grayscale">💬</span>
+                  <p className="text-xs uppercase tracking-widest font-bold">Channel Quiet</p>
+                  <p className="text-[10px] mt-1 text-gray-400">Send a broadcast to initialize timeline.</p>
+                </div>
+              )}
+              <div ref={messageEndRef} />
+            </>
           )}
-          <div ref={messageEndRef} />
         </div>
 
-        {/* FOOTER INTERFACE */}
+        {/* INPUT INTERFACE */}
         <form onSubmit={sendMessage} className="p-4 border-t border-gray-800 bg-[#0a0f12] flex gap-3">
           <input 
             type="text"
@@ -274,7 +321,7 @@ const CommunitySidebar = ({ isOpen, onClose, roomType = 'GLOBAL', contextId = nu
         </form>
       </div>
 
-      {/* THE BOUNCER MODAL */}
+      {/* AUTH GATE */}
       <LoginModal 
         isOpen={isLoginModalOpen} 
         onClose={() => setIsLoginModalOpen(false)} 

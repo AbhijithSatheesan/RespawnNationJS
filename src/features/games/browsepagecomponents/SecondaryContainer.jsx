@@ -1,24 +1,14 @@
-import React from 'react'
-import GameList from './GameList'
-import { useSelector } from 'react-redux'
+import React from 'react';
+import GameList from './GameList';
+import { useSelector } from 'react-redux';
 
 const SecondaryContainer = () => {
-  const games = useSelector((store) => store.gameList?.gameListContents)
+  const games = useSelector((store) => store.gameList?.gameListContents);
 
-  if (!games) {
-    return (
-      <div className="flex justify-center items-center py-32 w-full bg-[#121212]">
-        <div className="flex flex-col items-center">
-          <div className="h-12 w-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-cyan-400 font-bold tracking-widest uppercase animate-pulse">
-            Connecting to Server...
-          </p>
-        </div>
-      </div>
-    )
-  }
+  // Fallback safety catch (should rarely hit because of parent loader)
+  if (!games) return null;
 
-  const Main_category = games.Main_category
+  const Main_category = games.Main_category;
 
   return (
     <div className='relative z-20 flex flex-col gap-6 md:gap-10 -mt-16 sm:-mt-24 md:-mt-32 lg:-mt-52 pb-20'>
@@ -33,18 +23,15 @@ const SecondaryContainer = () => {
             key={categoryName}
             title={categoryName}
             games={games}
-            categoryName={categoryName} // <-- Passing the name!
+            categoryName={categoryName} 
           />
         ))}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default SecondaryContainer
-
-
-
+export default SecondaryContainer;
 
 
 

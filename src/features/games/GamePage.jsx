@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { useSelector } from 'react-redux'; // ADDED: For Auth Guard
+import { useParams, useSearchParams } from 'react-router-dom'; 
+import { useSelector } from 'react-redux'; 
 import api from '../../services/api';
 import { django_media_url } from '../../services/BackendConfig';
 import { GAME_DETAILS } from '../../services/apiRoutes';
 import TabTournaments from './gamepagecomponents/TabTournaments';
 import TabStreams from './gamepagecomponents/TabStreams';
 
-// Import our new components
 import GameHero from './gamepagecomponents/GameHero';
 import GameTabs from './gamepagecomponents/GameTabs';
 import TabAbout from './gamepagecomponents/TabAbout';
 import TrailerModal from './gamepagecomponents/TrailerModal';
 
-// ADDED: Chat and Auth Components
 import LoginModal from '../auth/LoginModal'; 
 import CommunityBar from '../Welcome/Components/CommunityBar';
 import CommunitySidebar from '../../components/Chat/CommunitySidebar';
@@ -21,16 +19,17 @@ import CommunitySidebar from '../../components/Chat/CommunitySidebar';
 const GamePage = () => {
   const { id } = useParams();
   
-  // 1. Grab user auth state from Redux
+  // URL-Bound Tab State
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'about';
+
   const { userInfo, token } = useSelector((state) => state.user);
 
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  const [activeTab, setActiveTab] = useState('about');
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
 
-  // 2. Add state for the Modals
+  // Modal States
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
@@ -48,12 +47,19 @@ const GamePage = () => {
     fetchGameDetails();
   }, [id]);
 
-  // 3. Auth Guard Handler for Chat
+  // Safely update the URL when changing tabs without trapping the Back button
+  const handleTabChange = (tabId) => {
+    if (activeTab === tabId) return;
+    
+    // { replace: true } prevents adding a new page to the browser history!
+    setSearchParams({ tab: tabId }, { replace: true });
+  };
+
   const handleCommunityClick = () => {
     if (!token && !userInfo) {
-      setIsLoginModalOpen(true); // Pop login if not authenticated
+      setIsLoginModalOpen(true); 
     } else {
-      setIsChatOpen(true);       // Open chat if authenticated
+      setIsChatOpen(true);       
     }
   };
 
@@ -84,46 +90,26 @@ const GamePage = () => {
       />
 
       {/* GAME CHAT BAR */}
-      {/* Placed sleekly between the Hero and the Tabs */}
       <div className="w-full max-w-4xl mx-auto px-6 mt-8 mb-4">
         <CommunityBar onClick={handleCommunityClick} />
       </div>
 
-      <GameTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+      {/* Pass the URL-bound state handlers to GameTabs */}
+      <GameTabs activeTab={activeTab} setActiveTab={handleTabChange} />
 
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto px-6 py-12 w-full">
         {activeTab === 'about' && <TabAbout game={game} />}
         
-        {/* Placeholders for future components */}
         {activeTab === 'tournaments' && (
-          <>
           <TabTournaments gameId={game.id} />
-          <div className="animate-fadeIn">
-            <h2 className="text-xl font-black uppercase text-gray-400 tracking-wider mb-6">Active Tournaments</h2>
-            <div className="bg-[#0a0a0c] border border-gray-800 rounded-lg p-12 text-center">
-              <p className="text-gray-500 font-bold uppercase tracking-widest">Fetching tournament data...</p>
-            </div>
-          </div>
-          </>
         )}
 
         {activeTab === 'streams' && (
-          <>
-          <TabStreams gameId = {game.id} game_image= {bgImage} />
-          <div className="animate-fadeIn">
-            <h2 className="text-xl font-black uppercase text-gray-400 tracking-wider mb-6">Live BroadCasts</h2>
-            <div className="bg-[#0a0a0c] border border-gray-800 rounded-lg p-12 text-center">
-              <span className="inline-block w-3 h-3 bg-red-500 rounded-full animate-pulse mb-4 shadow-[0_0_10px_rgba(239,68,68,0.8)]"></span>
-              <p className="text-gray-500 font-bold uppercase tracking-widest">Connecting to live streams...</p>
-            </div>
-          </div>
-          </>
+          <TabStreams gameId={game.id} game_image={bgImage} />
         )}
       </div>
 
-      {/* ========================================== */}
-      {/* MODALS RENDERED HERE AT THE BOTTOM         */}
-      {/* ========================================== */}
+      {/* MODALS RENDERED AT THE BOTTOM */}
       
       {isTrailerOpen && game.trailer_1 && (
         <TrailerModal 
@@ -140,8 +126,8 @@ const GamePage = () => {
       <CommunitySidebar
         isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}
-        roomType='GAME'             // Triggers the Django GAME logic
-        contextId={game.id}         // Passes the specific Game ID
+        roomType='GAME'             
+        contextId={game.id}         
       />
 
     </div>
