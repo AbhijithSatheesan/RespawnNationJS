@@ -39,6 +39,7 @@ export const USER_TOURNAMENT_MATCHES = (id) => `tournaments/${id}/my-matches/`
 
 // Custom
 export const AUTH_LOGIN = "accounts/login/";
+// export const AUTH_REGISTER = "accounts/register/";
 
 // Djoser
 export const AUTH_REGISTER = "auth/users/";

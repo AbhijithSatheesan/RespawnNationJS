@@ -12,14 +12,16 @@ const SearchBar = () => {
   const navigate = useNavigate();
   const searchRef = useRef(null);
 
-  // --- 1. DEBOUNCED SEARCH LOGIC ---
+  // --- 1. DEBOUNCED SEARCH LOGIC (Optimized) ---
   useEffect(() => {
-    if (query.trim().length === 0) {
+    // Exit early if the user hasn't typed at least 3 characters
+    if (query.trim().length < 3) {
       setResults([]);
       setIsOpen(false);
-      return;
+      return; 
     }
 
+    // 500ms debounce: waits half a second after they stop typing
     const delayDebounceFn = setTimeout(async () => {
       setIsLoading(true);
       try {
@@ -31,7 +33,7 @@ const SearchBar = () => {
       } finally {
         setIsLoading(false);
       }
-    }, 300);
+    }, 500);
 
     return () => clearTimeout(delayDebounceFn);
   }, [query]);

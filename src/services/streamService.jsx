@@ -12,8 +12,9 @@ const streamService = {
   },
 
   // 2. Create Stream (First Time Setup)
-  createStream: async () => {
-    const response = await api.post(`${STREAM_URL_PREFIX}/create-stream/`);
+  createStream: async (payload) => {
+    // We added 'payload' as an argument and passed it into the post request
+    const response = await api.post(`${STREAM_URL_PREFIX}/create-stream/`, payload);
     return response.data;
   },
 
