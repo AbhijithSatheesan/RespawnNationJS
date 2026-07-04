@@ -128,7 +128,7 @@ const TournamentDetails = () => {
               {tournament.title}
             </h1>
 
-            {/* NEW: Tournament Format & Description */}
+            {/* Tournament Format & Description */}
             <div className="mb-6 max-w-2xl bg-black/20 p-4 rounded border border-gray-800/50">
               <h3 className="text-cyan-400 font-black text-sm uppercase tracking-widest border-l-2 border-cyan-500 pl-3 mb-2 drop-shadow-md">
                 {tournament.type_name || "Standard Format"}
@@ -145,13 +145,18 @@ const TournamentDetails = () => {
               <div>
                 <span className="text-[10px] uppercase text-gray-400 font-bold block mb-0.5 tracking-widest">Prize Pool</span>
                 <span className="text-2xl font-black text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.4)]">
-                  ₹{tournament.current_prize_pool || "0.00"}
+                  ₹{Number(tournament.current_prize_pool || 0).toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="text-right">
                 <span className="text-[10px] uppercase text-gray-400 font-bold block mb-0.5 tracking-widest">Entry Fee</span>
                 <span className="text-lg font-bold text-white">
-                  {tournament.entry_fee > 0 ? `₹${tournament.entry_fee}` : <span className="text-yellow-400 tracking-widest uppercase">Free</span>}
+                  {/* FIX: Properly parsing the Entry Fee to prevent "Free" showing incorrectly */}
+                  {Number(tournament.entry_fee) > 0 ? (
+                    `₹${Number(tournament.entry_fee).toLocaleString('en-IN')}`
+                  ) : (
+                    <span className="text-yellow-400 tracking-widest uppercase">Free</span>
+                  )}
                 </span>
               </div>
             </div>
@@ -206,7 +211,6 @@ const TournamentDetails = () => {
       {/* DYNAMIC FORMAT ROUTER: Brackets, Standings, and Results */}
       <div className="mt-12 w-full max-w-7xl mx-auto min-h-[300px]">
         {isFetchingBrackets ? (
-          /* NEW SECONDARY LOADING SPINNER */
           <div className="flex flex-col items-center justify-center h-64 border border-dashed border-gray-800/50 rounded-lg bg-black/20">
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-cyan-500 mb-4"></div>
             <p className="text-gray-500 font-bold uppercase tracking-widest text-xs animate-pulse">
@@ -255,5 +259,4 @@ const TournamentDetails = () => {
 };
 
 export default TournamentDetails;
-
 
