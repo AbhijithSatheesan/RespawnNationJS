@@ -175,14 +175,16 @@ const TournamentDetails = () => {
             </div>
 
             <button 
-              onClick={isRegistered ? null : handleJoinClick}
+              onClick={isRegistered || progressPct >= 100 ? null : handleJoinClick}
               disabled={
-                (isRegistered && tournament.status === 'REGISTRATION') || 
+                (isRegistered || progressPct >= 100) && tournament.status === 'REGISTRATION' || 
                 tournament.status !== 'REGISTRATION' 
               }
               className={`w-full py-4 font-black uppercase tracking-widest text-sm rounded transition-all shadow-lg ${
                 isRegistered && tournament.status === 'REGISTRATION' 
                   ? 'bg-gray-800 text-green-500 border border-green-500/30 cursor-not-allowed shadow-[0_0_10px_rgba(34,197,94,0.2)]' :
+                progressPct >= 100 && tournament.status === 'REGISTRATION'
+                  ? 'bg-gray-800 text-red-500 border border-red-500/30 cursor-not-allowed' :
                 tournament.status === 'REGISTRATION' 
                   ? 'bg-cyan-600 border border-cyan-500 text-white hover:bg-cyan-500 shadow-[0_0_15px_rgba(8,145,178,0.4)]' :
                 tournament.status === 'GENERATING' 
@@ -192,6 +194,7 @@ const TournamentDetails = () => {
                 'bg-gray-800/80 text-gray-300 border border-gray-600 cursor-default'
             }`}>
               {tournament.status === 'REGISTRATION' && isRegistered ? 'Joined ✓' :
+               tournament.status === 'REGISTRATION' && progressPct >= 100 ? 'FULL' :
                tournament.status === 'REGISTRATION' ? 'Join Now' :
                tournament.status === 'GENERATING' ? 'Brackets' :
                tournament.status === 'LIVE' ? 'Standings' :
@@ -259,4 +262,3 @@ const TournamentDetails = () => {
 };
 
 export default TournamentDetails;
-
