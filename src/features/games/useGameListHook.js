@@ -10,7 +10,7 @@ const useGameListHook = () => {
     useEffect(() => {
         const fetchGameList = async () => {
             try{
-                const res = await api.get('games/browse_games');
+                const res = await api.get('games/browse_games/');
                 dispatch(addGameListContents(res.data));
             } catch (err) {
                 console.error('gamelsit fetch failed',err);
