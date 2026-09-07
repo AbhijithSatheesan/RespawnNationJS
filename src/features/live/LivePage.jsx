@@ -31,141 +31,194 @@ const LivePage = () => {
     }
   };
 
-  // Content for the standard image-based cards
-  const standardOptions = [
+  const LIVE_ITEMS = [
     {
       id: 'watch',
-      title: "Watch Streams",
-      description: "Browse active streams and creators.",
+      title: 'WATCH STREAMS',
+      desc: 'Browse active streams & creators',
+      color: '#06f3ff',
+      path: '/live/feed',
       image: livesAvailableImg,
-      path: "/live/feed", 
-      color: "from-purple-600 to-pink-500",
-      hoverColor: "group-hover:text-pink-400",
-      isDisabled: false
+      badge: 'LIVE FEED',
+      isDisabled: false,
+      onClick: () => navigate('/live/feed')
     },
     {
       id: 'tournaments',
-      title: "Tournaments",
-      description: "Watch ongoing competitive events.",
+      title: 'TOURNAMENTS',
+      desc: 'Watch ongoing competitive events',
+      color: '#F59E0B',
+      path: '/live/tournaments',
       image: tournamentLivesImg,
-      path: "/live/tournaments", 
-      color: "from-orange-500 to-red-500",
-      hoverColor: "group-hover:text-orange-400",
-      isDisabled: true, // Marked as disabled for construction
-      badgeText: "Coming Soon"
+      badge: 'COMING SOON',
+      isDisabled: true,
+      onClick: () => {}
+    },
+    {
+      id: 'golive',
+      title: 'START STREAMING',
+      desc: 'Setup key & broadcast live',
+      color: '#3B82F6',
+      path: '#',
+      image: livesAvailableImg,
+      badge: 'BROADCAST',
+      isDisabled: false,
+      onClick: handleGoLiveClick
     }
   ];
 
   return (
     <>
-      <div className="min-h-[85vh] flex items-center justify-center p-4">
+      <div className="min-h-[85vh] flex items-center justify-center p-3 sm:p-6 md:p-8 relative overflow-hidden">
         
-        {/* Main Hub Card */}
-        <div className="bg-[#0a0f12]/95 border border-gray-800 backdrop-blur-md rounded-3xl shadow-2xl w-full max-w-6xl p-8 md:p-12 relative overflow-hidden">
+        {/* Background Ambient Glow */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
+        
+        {/* Main Hub Container */}
+        <div className="bg-[#0a0d14]/90 border border-neutral-800 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-2xl w-full max-w-6xl p-4 sm:p-8 md:p-12 relative overflow-hidden z-10">
           
-          {/* Decorative Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight uppercase drop-shadow-lg">
-              Live <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Hub</span>
+          {/* Header */}
+          <div className="text-center mb-6 sm:mb-10">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black italic text-white tracking-tight uppercase">
+              LIVE <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">HUB</span>
             </h1>
-            <p className="text-gray-400 mt-3 text-lg font-mono tracking-wide uppercase text-sm">
-              Select your destination
+            <p className="text-neutral-400 mt-1 text-xs sm:text-sm font-mono tracking-widest uppercase">
+              SELECT YOUR DESTINATION
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            
-            {/* 1 & 2. Standard View Cards */}
-            {standardOptions.map((option) => (
-              <div 
-                key={option.id}
-                onClick={() => !option.isDisabled && navigate(option.path)}
-                className={`group relative h-full ${option.isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+          {/* ========================================================= */}
+          {/* MOBILE VIEW (< 768px): Welcome Page Horizontal Card Style */}
+          {/* ========================================================= */}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {LIVE_ITEMS.map((item) => (
+              <button
+                key={item.id}
+                onClick={item.onClick}
+                disabled={item.isDisabled}
+                className={`group relative w-full h-24 rounded-xl overflow-hidden bg-neutral-900/90 border border-neutral-800 p-3.5 flex items-center justify-between text-left transition-all ${
+                  item.isDisabled 
+                    ? 'opacity-60 cursor-not-allowed' 
+                    : 'active:scale-[0.98] active:border-neutral-600 cursor-pointer'
+                }`}
+                style={{
+                  boxShadow: `inset 4px 0 0 ${item.color}`
+                }}
               >
-                <div className={`h-full flex flex-col bg-[#0d1317] rounded-2xl border border-gray-800 overflow-hidden transition-all duration-300 ${!option.isDisabled ? 'hover:border-gray-600 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:-translate-y-1' : 'opacity-80'}`}>
-                  
-                  {/* Under Construction Overlay */}
-                  {option.isDisabled && (
-                    <div className="absolute inset-0 bg-[#050505]/70 z-30 flex flex-col items-center justify-center backdrop-blur-sm rounded-2xl border border-dashed border-gray-600">
-                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-yellow-500 mb-2 opacity-80">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                       </svg>
-                       <span className="bg-yellow-500 text-black font-black uppercase tracking-widest text-[10px] px-4 py-1.5 rounded shadow-lg shadow-yellow-500/20">
-                          {option.badgeText}
-                       </span>
-                    </div>
-                  )}
+                {/* HIGH VISIBILITY BACKGROUND IMAGE */}
+                <div 
+                  className={`absolute right-0 top-0 bottom-0 w-1/2 bg-cover bg-center transition-opacity ${
+                    item.isDisabled ? 'opacity-30 grayscale' : 'opacity-60 group-hover:opacity-80'
+                  }`}
+                  style={{ backgroundImage: `url(${item.image})` }}
+                />
+                
+                {/* GRADIENT OVERLAY FOR TEXT READABILITY */}
+                <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-r from-neutral-900 via-neutral-900/70 to-transparent" />
 
-                  {/* Image Header */}
-                  <div className="h-48 overflow-hidden relative shrink-0">
-                      <div className={`absolute inset-0 bg-gradient-to-t ${option.color} opacity-20 ${!option.isDisabled ? 'group-hover:opacity-40 transition-opacity duration-500' : ''} z-10`}></div>
-                      <img 
-                          src={option.image} 
-                          alt={option.title} 
-                          className={`w-full h-full object-cover ${!option.isDisabled ? 'group-hover:scale-110 transition-transform duration-700 ease-out' : 'grayscale-[50%]'}`}
-                      />
+                {/* TEXT CONTENT */}
+                <div className="relative z-10 flex flex-col justify-center max-w-[65%]">
+                  <div className="flex items-center gap-2">
+                    <span 
+                      className="text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded uppercase bg-neutral-950/90"
+                      style={{ color: item.color }}
+                    >
+                      {item.badge}
+                    </span>
                   </div>
+                  <h2 className="text-lg font-black italic tracking-tight text-white mt-1 group-hover:text-cyan-400 transition-colors">
+                    {item.title}
+                  </h2>
+                  <p className="text-[11px] text-neutral-300 tracking-wide line-clamp-1">
+                    {item.desc}
+                  </p>
+                </div>
 
-                  {/* Body */}
-                  <div className="p-6 flex-1 flex flex-col justify-center text-center relative z-20">
-                      <h3 className={`text-2xl font-black text-white mb-2 transition-colors duration-300 ${!option.isDisabled ? option.hoverColor : 'text-gray-500'}`}>
-                          {option.title}
-                      </h3>
-                      <p className="text-gray-400 text-sm leading-relaxed">
-                          {option.description}
-                      </p>
-                  </div>
+                {/* ACTION ARROW / LOCK ICON */}
+                <div 
+                  className="relative z-10 w-9 h-9 rounded-lg bg-neutral-950/80 border border-neutral-700/60 flex items-center justify-center text-base group-hover:translate-x-1 transition-transform shadow-lg"
+                  style={{ color: item.color }}
+                >
+                  {item.isDisabled ? '🔒' : '➔'}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* ========================================================= */}
+          {/* DESKTOP VIEW (>= 768px): Original 3-Column Grid Layout  */}
+          {/* ========================================================= */}
+          <div className="hidden md:grid grid-cols-3 gap-6 lg:gap-8">
+            
+            {/* 1. Watch Streams */}
+            <div 
+              onClick={() => navigate('/live/feed')}
+              className="group relative cursor-pointer h-full flex flex-col bg-[#050811] rounded-2xl border border-neutral-800 overflow-hidden transition-all duration-300 hover:border-cyan-500/50 hover:shadow-[0_0_25px_rgba(6,182,212,0.15)] hover:-translate-y-1"
+            >
+              <div className="h-48 overflow-hidden relative shrink-0">
+                <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/20 to-transparent opacity-40 group-hover:opacity-70 transition-opacity z-10" />
+                <img src={livesAvailableImg} alt="Watch Streams" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              </div>
+              <div className="p-6 flex-1 flex flex-col justify-between text-center relative z-20">
+                <div>
+                  <h3 className="text-2xl font-black italic text-white mb-2 group-hover:text-cyan-400 transition-colors">WATCH STREAMS</h3>
+                  <p className="text-neutral-400 text-xs leading-relaxed">Browse active streams and creators in real-time.</p>
+                </div>
+                <button className="w-full mt-6 py-2.5 bg-neutral-900 border border-neutral-700 group-hover:border-cyan-500 text-cyan-400 font-bold uppercase text-xs rounded-lg transition-all">
+                  ENTER FEED
+                </button>
+              </div>
+            </div>
+
+            {/* 2. Tournaments */}
+            <div className="group relative h-full flex flex-col bg-[#050811] rounded-2xl border border-neutral-800 overflow-hidden opacity-75 cursor-not-allowed">
+              <div className="absolute inset-0 bg-[#050811]/80 z-30 flex flex-col items-center justify-center backdrop-blur-sm">
+                <span className="bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black uppercase text-[10px] px-4 py-1.5 rounded-full">
+                  COMING SOON
+                </span>
+              </div>
+              <div className="h-48 overflow-hidden relative shrink-0">
+                <img src={tournamentLivesImg} alt="Tournaments" className="w-full h-full object-cover grayscale" />
+              </div>
+              <div className="p-6 flex-1 flex flex-col justify-between text-center">
+                <div>
+                  <h3 className="text-2xl font-black italic text-neutral-400 mb-2">TOURNAMENTS</h3>
+                  <p className="text-neutral-500 text-xs leading-relaxed">Watch ongoing competitive esports events.</p>
                 </div>
               </div>
-            ))}
+            </div>
 
-            {/* 3. "Go Live" Action Button Card */}
+            {/* 3. Go Live */}
             <div 
               onClick={handleGoLiveClick}
-              className="group relative cursor-pointer h-full flex flex-col justify-center items-center text-center p-8 bg-gradient-to-br from-[#0a0f12] to-[#111820] rounded-2xl border-2 border-dashed border-gray-700 hover:border-cyan-500 transition-all duration-500 hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] hover:-translate-y-1"
+              className="group relative cursor-pointer h-full flex flex-col justify-between items-center text-center p-6 bg-[#050811] rounded-2xl border-2 border-dashed border-cyan-500/30 hover:border-cyan-400 transition-all duration-300 hover:shadow-[0_0_25px_rgba(6,182,212,0.2)] hover:-translate-y-1"
             >
-               {/* Pulsing background glow on hover */}
-               <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none"></div>
-
-               {/* Icon */}
-               <div className="w-20 h-20 rounded-full bg-black/40 border border-gray-800 flex items-center justify-center mb-6 group-hover:bg-cyan-900/30 group-hover:border-cyan-500/50 transition-all duration-500 shadow-inner group-hover:scale-110">
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    strokeWidth={1.5} 
-                    stroke="currentColor" 
-                    className="w-10 h-10 text-gray-500 group-hover:text-cyan-400 transition-colors duration-500"
-                  >
-                    <path strokeLinecap="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+              <div className="flex flex-col items-center my-auto relative z-10">
+                <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-4 group-hover:bg-cyan-500/20 transition-all">
+                  <svg className="w-8 h-8 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
                   </svg>
-               </div>
-
-               {/* Typography */}
-               <h3 className="text-2xl font-black text-white mb-3 group-hover:text-cyan-400 transition-colors duration-300 relative z-10">
-                   Start Streaming
-               </h3>
-               <p className="text-gray-400 text-sm mb-8 relative z-10">
-                   Setup your key and start broadcasting instantly.
-               </p>
-
-               {/* Button */}
-               <button className="relative z-10 px-8 py-3 bg-gray-800 border border-gray-600 group-hover:border-cyan-500 text-white font-black tracking-widest uppercase text-sm rounded-full transition-all duration-300 group-hover:bg-cyan-600 group-hover:shadow-[0_0_20px_rgba(8,145,178,0.5)]">
-                   GO LIVE
-               </button>
+                </div>
+                <h3 className="text-2xl font-black italic text-white mb-2 group-hover:text-cyan-400 transition-colors">START STREAMING</h3>
+                <p className="text-neutral-400 text-xs leading-relaxed">Broadcast instantly to your audience.</p>
+              </div>
+              <button className="w-full mt-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-black uppercase text-xs rounded-lg shadow-md hover:brightness-110 transition-all">
+                GO LIVE NOW
+              </button>
             </div>
 
           </div>
+
         </div>
       </div>
 
-      {/* Global Login Modal for unauthenticated users */}
+      {/* Global Login Modal */}
       <LoginModal 
         isOpen={isLoginModalOpen} 
         onClose={() => setIsLoginModalOpen(false)} 
       />
     </>
-  )
-}
+  );
+};
 
 export default LivePage;

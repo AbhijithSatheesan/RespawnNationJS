@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 const TrendingGameTrailer = () => {
+  const navigate = useNavigate();
+
   const game = useSelector((store) => 
     store.trendingRandomGame?.trending_random_game?.trending_game
   );
 
-  // Fallback safety catch
   if (!game) return null;
 
-  const { name, trailer_1, cover_image } = game;
+  const { id, name, trailer_1, cover_image } = game;
 
   const getYouTubeId = (url) => {
     if (!url) return null;
@@ -27,8 +29,9 @@ const TrendingGameTrailer = () => {
       <div className="absolute inset-0 w-full h-full">
         {videoId ? (
           <iframe
+            key={videoId} /* CRITICAL FIX: Forces React to replace the iframe element instead of mutating .src */
             className="w-full h-full object-cover scale-[1.3] md:scale-110 pointer-events-none" 
-            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&loop=1&playlist=${videoId}`}
+            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&loop=1&enablejsapi=1&playlist=${videoId}`}
             title="Main Trailer"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
@@ -42,11 +45,8 @@ const TrendingGameTrailer = () => {
         )}
       </div>
 
-      {/* Gradients for Text Readability & Blending - Reduced Opacity */}
-      {/* Left-to-Right Side Fade: Softened significantly to make the video clear */}
+      {/* Gradients */}
       <div className="absolute inset-0 bg-gradient-to-r from-[#121212]/70 via-[#121212]/30 to-transparent w-full md:w-[60%]" />
-      
-      {/* Bottom-to-Top Vertical Fade: Toned down heavily so mobile screens aren't blacked out */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#121212]/80 via-[#121212]/10 to-transparent" />
 
       {/* Content Layer */}
@@ -63,18 +63,28 @@ const TrendingGameTrailer = () => {
             </span>
           </div>
 
-          {/* Enhanced drop-shadow so text is crystal clear over the high-visibility video background */}
           <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black italic tracking-tighter uppercase mb-4 md:mb-6 drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)] line-clamp-2 leading-none">
             {name}
           </h1>
 
           <div className="flex flex-wrap gap-2.5 md:gap-4">
-            <button className="flex items-center gap-1.5 md:gap-2 px-4 sm:px-5 md:px-8 py-2 md:py-3 bg-white text-black font-black uppercase tracking-wider text-xs md:text-base rounded hover:bg-cyan-400 transition-all duration-300 hover:scale-105 shadow-lg">
-              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-6 md:h-6 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-              Play Now
+            <button 
+              onClick={() => navigate('/live')}
+              className="flex items-center gap-1.5 md:gap-2 px-4 sm:px-5 md:px-8 py-2 md:py-3 bg-cyan-500 hover:bg-cyan-400 text-black font-black uppercase tracking-wider text-xs md:text-base rounded transition-all duration-300 hover:scale-105 shadow-lg cursor-pointer"
+            >
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-6 md:h-6 fill-current" viewBox="0 0 24 24">
+                <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+              </svg>
+              Streams
             </button>
-            <button className="flex items-center gap-1.5 md:gap-2 px-4 sm:px-5 md:px-8 py-2 md:py-3 bg-gray-900/60 text-white font-bold tracking-wider uppercase text-xs md:text-base rounded backdrop-blur-md hover:bg-gray-800/80 transition-all duration-300 border border-gray-500/40 shadow-lg">
-              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+
+            <button 
+              onClick={() => id && navigate(`/game/${id}`)}
+              className="flex items-center gap-1.5 md:gap-2 px-4 sm:px-5 md:px-8 py-2 md:py-3 bg-gray-900/60 text-white font-bold tracking-wider uppercase text-xs md:text-base rounded backdrop-blur-md hover:bg-gray-800/80 transition-all duration-300 border border-gray-500/40 shadow-lg cursor-pointer"
+            >
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               More Info
             </button>
           </div>
@@ -85,4 +95,4 @@ const TrendingGameTrailer = () => {
   );
 };
 
-export default TrendingGameTrailer;
+export default memo(TrendingGameTrailer);
