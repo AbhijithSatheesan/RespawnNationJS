@@ -14,5 +14,3 @@ export const django_media_url = import.meta.env.VITE_MEDIA_URL
 
 
 
-// https://excalidraw.com/#json=qcqF4EmcGHsXDCpAJS87S,CqzwA0ewkh_QB2DkTKj2kA
-
