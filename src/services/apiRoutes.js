@@ -42,7 +42,7 @@ export const AUTH_LOGIN = "accounts/login/";
 export const AUTH_REGISTER = "accounts/register/";
 
 // Djoser
-// export const AUTH_REGISTER = "auth/users/";
+export const AUTH_REFRESH = "auth/jwt/refresh/";
 export const AUTH_ACTIVATE = "auth/users/activation/";
 export const AUTH_PASSWORD_RESET = "auth/users/reset_password/";
 export const AUTH_PASSWORD_RESET_CONFIRM = "auth/users/reset_password_confirm/";
