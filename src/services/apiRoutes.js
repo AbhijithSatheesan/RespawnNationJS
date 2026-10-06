@@ -46,3 +46,7 @@ export const AUTH_REGISTER = "accounts/register/";
 export const AUTH_ACTIVATE = "auth/users/activation/";
 export const AUTH_PASSWORD_RESET = "auth/users/reset_password/";
 export const AUTH_PASSWORD_RESET_CONFIRM = "auth/users/reset_password_confirm/";
+
+
+// Chatbot
+export const CHATBOT = "ai/chat/"

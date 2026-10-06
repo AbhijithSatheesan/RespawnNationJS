@@ -30,6 +30,12 @@ import CategoryGamesPage from './features/games/browsepagecomponents/CategoryGam
 import Community from './features/community/Community';
 import UserProfile from './features/User/Userprofile';
 
+// AI Assistant
+import AIAssistant from './features/ai/AIAssistant';
+
+
+
+
 export default function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const dispatch = useDispatch();
@@ -87,6 +93,8 @@ export default function App() {
         onClose={() => setIsLoginModalOpen(false)} 
       />
 
+      <AIAssistant />
+
       <Routes>
         {/* Safety Catch: In case you have any stray <Link to="/login"> in your code, 
             this bounces them to home and opens the modal silently instead of showing an empty page */}
@@ -132,6 +140,8 @@ export default function App() {
           <Route path="/activate/:uid/:token" element={<ActivateAccount />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:uid/:token" element={<ResetPasswordConfirm />} />
+
+
 
           {/* 404 Fallback */}
           <Route path='*' element={<NotFound />} />

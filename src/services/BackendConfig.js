@@ -14,3 +14,4 @@ export const django_media_url = import.meta.env.VITE_MEDIA_URL
 
 
 
+
