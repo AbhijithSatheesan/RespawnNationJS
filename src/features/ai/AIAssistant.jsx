@@ -3,16 +3,30 @@ import AIButton from "./AIButton";
 import AIChatWindow from "./AIChatWindow";
 
 const AIAssistant = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] =
+    useState(false);
+
+  const [buttonPosition, setButtonPosition] =
+    useState({
+      x: window.innerWidth - 78,
+      y: window.innerHeight - 78,
+    });
 
   return (
     <>
       {!isOpen && (
-        <AIButton onClick={() => setIsOpen(true)} />
+        <AIButton
+          position={buttonPosition}
+          setPosition={setButtonPosition}
+          onClick={() => setIsOpen(true)}
+        />
       )}
 
       {isOpen && (
-        <AIChatWindow onClose={() => setIsOpen(false)} />
+        <AIChatWindow
+          buttonPosition={buttonPosition}
+          onClose={() => setIsOpen(false)}
+        />
       )}
     </>
   );

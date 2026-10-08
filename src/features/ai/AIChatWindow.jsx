@@ -1,236 +1,452 @@
-import React, { useState, useEffect, useRef } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { sendAIMessage } from "./aiServices";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
-const AIChatWindow = ({ onClose }) => {
+import {
+  useDispatch,
+  useSelector,
+} from "react-redux";
+
+import { sendAIMessage } from "./aiServices";
+import {
+  addMessage,
+  setSummary,
+} from "./aiChatSlice";
+
+import AIChatHeader from "./components/AIChatHeader";
+import AIMessage from "./components/AIMessage";
+import AIInput from "./components/AIInput";
+import MarkdownRenderer from "./components/MarkdownRenderer";
+
+const CHAT_WIDTH = 560;
+const CHAT_HEIGHT = 720;
+const GAP = 16;
+const EDGE = 12;
+
+const getChatPosition = (button) => {
+  const mobile = window.innerWidth < 768;
+
+  const width = mobile
+    ? window.innerWidth * 0.9
+    : CHAT_WIDTH;
+
+  const height = mobile
+    ? window.innerHeight * 0.5
+    : CHAT_HEIGHT;
+
+  const buttonCenterX = button.x + 30;
+
+  let x =
+    buttonCenterX > window.innerWidth / 2
+      ? button.x - width - GAP
+      : button.x + 60 + GAP;
+
+  let y =
+    button.y + 30 - height / 2;
+
+  x = Math.max(
+    EDGE,
+    Math.min(
+      x,
+      window.innerWidth - width - EDGE
+    )
+  );
+
+  y = Math.max(
+    EDGE,
+    Math.min(
+      y,
+      window.innerHeight - height - EDGE
+    )
+  );
+
+  return { x, y };
+};
+
+const AIChatWindow = ({
+  buttonPosition,
+  onClose,
+}) => {
+  const dispatch = useDispatch();
+
+  const { messages, summary } = useSelector(
+    (state) => state.aiChat
+  );
+
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content: "Hey! I'm Respawn AI. How can I help you?",
-    },
-  ]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
+  const [typingReply, setTypingReply] =
+    useState("");
+  const [isLoading, setIsLoading] =
+    useState(false);
+  const [isTyping, setIsTyping] =
+    useState(false);
   const [error, setError] = useState(null);
 
-  const messagesEndRef = useRef(null);
+  const [position, setPosition] = useState(() =>
+    getChatPosition(buttonPosition)
+  );
+
+  const dragRef = useRef(null);
+  const windowRef = useRef(null);
+  const messagesRef = useRef(null);
   const inputRef = useRef(null);
+  const frameRef = useRef(null);
 
-  // Scroll to newest message
+  // -----------------------------
+  // Chat scrolling
+  // -----------------------------
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading, isTyping]);
+    const container = messagesRef.current;
 
-  // Automatically focus input when ready
+    if (!container) return;
+
+    requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight;
+    });
+  }, [
+    messages,
+    typingReply,
+    isLoading,
+    isTyping,
+  ]);
+
+  // -----------------------------
+  // Input focus
+  // -----------------------------
+
   useEffect(() => {
     if (!isLoading && !isTyping) {
       inputRef.current?.focus();
     }
   }, [isLoading, isTyping]);
 
+  // -----------------------------
+  // Textarea resize
+  // -----------------------------
+
+  useEffect(() => {
+    const textarea = inputRef.current;
+
+    if (!textarea) return;
+
+    textarea.style.height = "auto";
+
+    textarea.style.height = `${Math.min(
+      textarea.scrollHeight,
+      140
+    )}px`;
+  }, [input]);
+
+  // -----------------------------
+  // Dragging
+  // -----------------------------
+
+  const handleDragStart = (e) => {
+    if (e.target.closest("button")) return;
+
+    const rect =
+      windowRef.current.getBoundingClientRect();
+
+    dragRef.current = {
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      x: position.x,
+      y: position.y,
+    };
+
+    e.currentTarget.setPointerCapture(
+      e.pointerId
+    );
+  };
+
+  const handleDragMove = (e) => {
+    if (!dragRef.current) return;
+
+    const rect =
+      windowRef.current.getBoundingClientRect();
+
+    const x = Math.max(
+      EDGE,
+      Math.min(
+        e.clientX -
+          dragRef.current.offsetX,
+        window.innerWidth -
+          rect.width -
+          EDGE
+      )
+    );
+
+    const y = Math.max(
+      EDGE,
+      Math.min(
+        e.clientY -
+          dragRef.current.offsetY,
+        window.innerHeight -
+          rect.height -
+          EDGE
+      )
+    );
+
+    dragRef.current.x = x;
+    dragRef.current.y = y;
+
+    if (!frameRef.current) {
+      frameRef.current =
+        requestAnimationFrame(() => {
+          windowRef.current.style.transform =
+            `translate3d(
+              ${dragRef.current.x}px,
+              ${dragRef.current.y}px,
+              0
+            )`;
+
+          frameRef.current = null;
+        });
+    }
+  };
+
+  const handleDragEnd = (e) => {
+    if (!dragRef.current) return;
+
+    const { x, y } = dragRef.current;
+
+    dragRef.current = null;
+
+    if (frameRef.current) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+
+    setPosition({ x, y });
+
+    e.currentTarget.releasePointerCapture?.(
+      e.pointerId
+    );
+  };
+
+  // -----------------------------
+  // Send message
+  // -----------------------------
+
   const handleSend = async (e) => {
     e.preventDefault();
 
-    const trimmedMessage = input.trim();
+    const message = input.trim();
 
-    if (!trimmedMessage || isLoading || isTyping) return;
+    if (
+      !message ||
+      isLoading ||
+      isTyping
+    ) {
+      return;
+    }
 
     setError(null);
 
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: trimmedMessage },
-    ]);
+    const previousMessages = messages;
+
+    dispatch(
+      addMessage({
+        role: "user",
+        content: message,
+      })
+    );
 
     setInput("");
     setIsLoading(true);
 
     try {
-      const data = await sendAIMessage(trimmedMessage);
+      const data = await sendAIMessage({
+        message,
+        history: previousMessages,
+        summary,
+      });
+
       const reply = data.reply || "";
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "" },
-      ]);
+      const actions = Array.isArray(
+        data.actions
+      )
+        ? data.actions
+        : [];
+
+      if (
+        data.summary !== undefined
+      ) {
+        dispatch(
+          setSummary(data.summary)
+        );
+      }
 
       setIsLoading(false);
       setIsTyping(true);
+      setTypingReply("");
 
-      for (let i = 0; i < reply.length; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 10));
+      const step = 3;
 
-        setMessages((prev) => {
-          const updatedMessages = [...prev];
+      for (
+        let i = 0;
+        i < reply.length;
+        i += step
+      ) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, 15)
+        );
 
-          updatedMessages[updatedMessages.length - 1] = {
-            role: "assistant",
-            content: reply.slice(0, i + 1),
-          };
-
-          return updatedMessages;
-        });
+        setTypingReply(
+          reply.slice(0, i + step)
+        );
       }
 
+      dispatch(
+        addMessage({
+          role: "assistant",
+          content: reply,
+          actions,
+        })
+      );
+
+      setTypingReply("");
       setIsTyping(false);
-    } catch (error) {
-      console.error("AI request failed:", error);
+    } catch (err) {
+      console.error(
+        "AI request failed:",
+        err
+      );
 
       setIsLoading(false);
       setIsTyping(false);
+      setTypingReply("");
 
       setError(
-        error.response?.data?.error || "Unable to connect to Respawn AI."
+        err.response?.data?.error ||
+          "Unable to connect to Respawn AI."
       );
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (
+      e.key === "Enter" &&
+      !e.shiftKey
+    ) {
+      e.preventDefault();
+      handleSend(e);
+    }
+  };
+
   return (
-    <div className="fixed z-[60] bottom-6 right-6 w-[560px] h-[720px] max-w-[calc(100vw-48px)] max-h-[calc(100dvh-48px)] max-md:bottom-5 max-md:right-[5vw] max-md:w-[90vw] max-md:h-[50dvh] max-md:max-h-[50dvh] bg-[#050505]/30 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+    <div
+      ref={windowRef}
+      className="
+        fixed left-0 top-0 z-[60]
+        w-[560px] h-[720px]
+        max-w-[calc(100vw-24px)]
+        max-h-[calc(100dvh-24px)]
+        max-md:w-[90vw]
+        max-md:h-[50dvh]
+        overflow-hidden
+        rounded-2xl
+        border border-white/10
+        bg-[#050505]/40
+        backdrop-blur-xl
+        shadow-[0_20px_80px_rgba(0,0,0,0.6)]
+        will-change-transform
+      "
+      style={{
+        transform: `translate3d(
+          ${position.x}px,
+          ${position.y}px,
+          0
+        )`,
+      }}
+    >
       <div className="h-full flex flex-col">
 
-        {/* Header */}
-        <div className="shrink-0 h-16 px-5 flex items-center justify-between border-b border-white/10 bg-black/15">
-          <div>
-            <h2 className="text-base font-black text-white">RESPAWN AI</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Gaming assistant</p>
-          </div>
+        <AIChatHeader
+          onClose={onClose}
+          onPointerDown={handleDragStart}
+          onPointerMove={handleDragMove}
+          onPointerUp={handleDragEnd}
+          onPointerCancel={handleDragEnd}
+        />
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
-            aria-label="Close Respawn AI"
-          >
-            ✕
-          </button>
-        </div>
+        <div
+          ref={messagesRef}
+          className="
+            flex-1
+            overflow-y-auto
+            px-5 py-5
+            space-y-4
+            max-md:px-4
+            max-md:py-4
+          "
+        >
+          {messages.map(
+            (message, index) => (
+              <AIMessage
+                key={index}
+                message={message}
+                onClose={onClose}
+              />
+            )
+          )}
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 max-md:px-4 max-md:py-4 max-md:space-y-4">
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
-              <div
-                className={`max-w-[88%] rounded-xl px-4 py-3 text-[15px] leading-7 max-md:max-w-[92%] max-md:text-sm max-md:leading-6 ${
-                  message.role === "user"
-                    ? "bg-cyan-600/75 text-white"
-                    : "bg-black/45 text-gray-200"
-                }`}
-              >
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    table: ({ children }) => (
-                      <div className="overflow-x-auto my-3">
-                        <table className="w-full border-collapse text-sm">
-                          {children}
-                        </table>
-                      </div>
-                    ),
-                    thead: ({ children }) => (
-                      <thead className="bg-black/30 text-gray-100">
-                        {children}
-                      </thead>
-                    ),
-                    tbody: ({ children }) => <tbody>{children}</tbody>,
-                    tr: ({ children }) => (
-                      <tr className="border-b border-white/10">{children}</tr>
-                    ),
-                    th: ({ children }) => (
-                      <th className="px-3 py-2 text-left font-bold border border-white/10 whitespace-nowrap">
-                        {children}
-                      </th>
-                    ),
-                    td: ({ children }) => (
-                      <td className="px-3 py-2 border border-white/10 text-gray-200 whitespace-nowrap">
-                        {children}
-                      </td>
-                    ),
-                    p: ({ children }) => (
-                      <p className="mb-3 last:mb-0">{children}</p>
-                    ),
-                    strong: ({ children }) => (
-                      <strong className="font-bold text-white">{children}</strong>
-                    ),
-                    ul: ({ children }) => (
-                      <ul className="list-disc ml-6 mb-3 space-y-1">{children}</ul>
-                    ),
-                    ol: ({ children }) => (
-                      <ol className="list-decimal ml-6 mb-3 space-y-1">{children}</ol>
-                    ),
-                    h1: ({ children }) => (
-                      <h1 className="text-xl font-bold text-white mb-3">{children}</h1>
-                    ),
-                    h2: ({ children }) => (
-                      <h2 className="text-lg font-bold text-white mb-3">{children}</h2>
-                    ),
-                    h3: ({ children }) => (
-                      <h3 className="text-base font-bold text-white mb-2">{children}</h3>
-                    ),
-                    code: ({ children }) => (
-                      <code className="bg-black/50 rounded px-1.5 py-0.5 text-sm text-cyan-300">
-                        {children}
-                      </code>
-                    ),
-                  }}
-                >
-                  {message.content}
-                </ReactMarkdown>
+          {isTyping && typingReply && (
+            <div className="flex justify-start">
+              <div className="
+                max-w-[88%]
+                rounded-xl
+                px-4 py-3
+                bg-black/40
+                text-gray-200
+                text-sm
+                leading-7
+              ">
+                <MarkdownRenderer>
+                  {typingReply}
+                </MarkdownRenderer>
               </div>
             </div>
-          ))}
+          )}
 
-          {/* Thinking indicator */}
-          {isLoading && !isTyping && (
+          {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-black/45 text-gray-400 rounded-xl px-4 py-3 text-sm">
+              <div className="
+                px-4 py-3
+                rounded-xl
+                bg-black/40
+                text-gray-500
+                text-sm
+              ">
                 Thinking...
               </div>
             </div>
           )}
 
-          {/* Error */}
           {error && (
-            <div className="text-red-400 text-sm px-1">{error}</div>
+            <div className="
+              text-red-400
+              text-sm
+              px-1
+            ">
+              {error}
+            </div>
           )}
-
-          <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
-        <form
-          onSubmit={handleSend}
-          className="shrink-0 p-4 max-md:p-3 border-t border-white/10 bg-black/15"
-        >
-          <div className="flex gap-3 items-center">
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask something..."
-              disabled={isLoading || isTyping}
-              autoComplete="off"
-              className="flex-1 h-12 max-md:h-11 bg-black/35 border border-white/10 rounded-xl px-4 text-[15px] max-md:text-sm text-white placeholder:text-gray-500 outline-none focus:border-cyan-500/70 focus:ring-1 focus:ring-cyan-500/40 disabled:opacity-50"
-            />
+        <AIInput
+          input={input}
+          setInput={setInput}
+          onSend={handleSend}
+          onKeyDown={handleKeyDown}
+          inputRef={inputRef}
+          disabled={isLoading || isTyping}
+        />
 
-            <button
-              type="submit"
-              disabled={isLoading || isTyping || !input.trim()}
-              className="shrink-0 h-12 w-12 max-md:h-11 max-md:w-11 bg-cyan-600/80 hover:bg-cyan-500 text-white rounded-xl flex items-center justify-center transition-colors disabled:opacity-40"
-              aria-label="Send message"
-            >
-              ➤
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );
